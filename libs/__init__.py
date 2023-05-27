@@ -2,6 +2,7 @@ import pyttsx3
 import time
 import logging
 import os
+import pyautogui
 from psutil import process_iter
 from colorama import Fore, init
 
@@ -28,9 +29,9 @@ logfile_ = True
 def log(text, level="normal"):
     init()
     if level == "normal":
-        print(text)
+        print(Fore.GREEN + text)
     elif level == "info":
-        print("[%s] [%s]: %s" % (
+        print(Fore.GREEN + "[%s] [%s]: %s" % (
             time.strftime(r"%Y-%m-%d %H:%M:%S"), "INFO", text))
         logging.info(text)
     elif level == "warning":
@@ -41,7 +42,17 @@ def log(text, level="normal"):
         print(Fore.RED + "[%s] [%s]: %s" % (
             time.strftime(r"%Y-%m-%d %H:%M:%S"), "ERROR", text))
         logging.error(text)
+    elif level == "debug":
+        print(Fore.WHITE + "[%s] [%s]: %s" % (
+            time.strftime(r"%Y-%m-%d %H:%M:%S"), "DEBUG", text))
+        logging.debug(text)
     else:
         print("[%s] [%s]: %s" % (
             time.strftime(r"%Y-%m-%d %H:%M:%S"), level, text))
         logging.info(text)
+
+def wechat(text, executant_wrapper_object, *, with_spaces=True):
+    pyautogui.hotkey("ctrl", "alt", "w")
+    executant_wrapper_object.click_input()
+    executant_wrapper_object.type_keys("[FTF] %s"%text, with_spaces=with_spaces)
+    pyautogui.hotkey("enter")

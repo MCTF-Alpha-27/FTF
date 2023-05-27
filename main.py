@@ -1,67 +1,101 @@
-import pyautogui
 from pywinauto.application import Application
 from libs import *
 
-log("终端启动中", "info")
-log("正在连接到微信", "info")
-say_in_english("starting terminal")
-say_in_english("connecting")
+while True:
+    os.system("cls")
+    log("终端启动中", "info")
+    log("正在连接到微信", "info")
+    say_in_english("starting terminal")
+    say_in_english("connecting")
 
-pyautogui.hotkey("ctrl", "alt", "w")
-app = Application(backend="uia").connect(process=get_wechat_pid())
-wechat_window = app.window(class_name="WeChatMainWndForPC")
-wechat_window.minimize()
-pyautogui.FAILSAFE = False
+    pyautogui.hotkey("ctrl", "alt", "w")
+    app = Application(backend="uia").connect(process=get_wechat_pid())
+    wechat_window = app.window(class_name="WeChatMainWndForPC")
+    wechat_window.minimize()
+    pyautogui.FAILSAFE = False
 
-log("已尝试连接，如没有成功，请手动启动微信", "info")
-say_in_english("attempted to connect")
-say_in_english("please stand by")
-
-try:
+    log("已尝试连接，若没有成功，请手动启动微信", "info")
+    say_in_english("attempted to connect")
+    say_in_english("please stand by")
     log("开始监听", "info")
     say_in_english("start listening")
-    executant_window = wechat_window.child_window(title="一只叫迷迭香的菲林", control_type="ListItem")
-    executant_wrapper_object = executant_window.wrapper_object()
-    command_list = ["/start protocol", "/stop protocol", "/shutdown"]
-    while True:
-        for i in executant_wrapper_object.descendants():
-            if i.friendly_class_name() == "Static":
-                if i.window_text() in command_list:
-                    command = i.window_text()
-                    log("获取到指令: %s"%command, "info")
-                    say_in_english("command received: %s"%command.replace("/", ""))
-                    if command == "/start protocol":
-                        say_in_english("protocol activation command detected")
-                        log("检测到协议激活指令", "info")
-                        log("协议已激活", "info")
-                        pyautogui.hotkey("ctrl", "alt", "w")
-                        executant_wrapper_object.click_input()
-                        executant_wrapper_object.type_keys("[FTF] 协议已激活", with_spaces=True)
-                        pyautogui.hotkey("enter")
-                        wechat_window.minimize()
-                    elif command == "/stop protocol":
-                        say_in_english("protocol terminated command detected")
-                        log("检测到协议终止指令", "info")
-                        log("协议已终止", "info")
-                        pyautogui.hotkey("ctrl", "alt", "w")
-                        executant_wrapper_object.click_input()
-                        executant_wrapper_object.type_keys("[FTF] 协议已终止", with_spaces=True)
-                        pyautogui.hotkey("enter")
-                        wechat_window.minimize()
-                    elif command == "/shutdown":
-                        say_in_english("shutdown command detected")
-                        log("检测到关机指令", "info")
-                        say_in_english("the computer will shutdown in T-minus ten seconds")
-                        log("将在10秒后关机", "info")
-                        pyautogui.hotkey("ctrl", "alt", "w")
-                        executant_wrapper_object.click_input()
-                        executant_wrapper_object.type_keys("[FTF] 将在10秒后关机", with_spaces=True)
-                        pyautogui.hotkey("enter")
-                        wechat_window.minimize()
-                        os.system("shutdown -s -t 10")
-        time.sleep(1)
-except Exception as e:
-    log("监听中发生错误，我们获取了以下信息", "warning")
-    say_in_english("an error was caught")
-    log(str(e), "error")
-    input()
+
+    try:
+        executant_window = wechat_window.child_window(title="一只叫迷迭香的菲林", control_type="ListItem")
+        executant_wrapper_object = executant_window.wrapper_object()
+        command_list = ["/start-protocol", "/stop-protocol", "/shutdown", "/open-url", "/exit"]
+        while True:
+            for i in executant_wrapper_object.descendants():
+                if i.friendly_class_name() == "Edit":
+                    # 我草你妈妈微信，byd这Static怎么一开始对的后来会变成Edit的是吧，太神奇了
+                    # log(i.friendly_class_name(), "debug")
+                    # log(i.window_text(), "debug")
+                    # log(i.window_text().split(" "), "debug")
+                    # log(i.window_text().split(" ")[0], "debug")
+                    # input()
+                    if i.window_text().split(" ")[0] in command_list:
+                        command: str = i.window_text()
+                        log("[远程终端指令] %s"%command, "info")
+                        say_in_english("command received: %s"%command.replace("/", ""))
+                        if command == "/start-protocol":
+                            say_in_english("protocol activation command detected")
+                            log("检测到协议激活指令", "info")
+                            log("协议已激活", "info")
+                            wechat("协议已激活", executant_wrapper_object)
+                            wechat_window.minimize()
+                        elif command == "/stop-protocol":
+                            say_in_english("protocol terminated command detected")
+                            log("检测到协议终止指令", "info")
+                            log("协议已终止", "info")
+                            wechat("协议已终止", executant_wrapper_object)
+                            wechat_window.minimize()
+                        elif command == "/shutdown":
+                            say_in_english("shutdown command detected")
+                            log("检测到关机指令", "info")
+                            say_in_english("the computer will shutdown in T-minus ten seconds")
+                            log("将在10秒后关机", "info")
+                            wechat("将在10秒后关机", executant_wrapper_object)
+                            wechat_window.minimize()
+                            os.system("shutdown -s -t 10")
+                        elif command.startswith("/open-url"):
+                            say_in_english("url open command detected")
+                            log("检测到路径/网址启动指令", "info")
+                            url = ""
+                            for i in command.split(" ")[1:]:
+                                url += i
+                            say_in_english("getting url")
+                            log("获取到路径/网址: %s"%url, "info")
+                            say_in_english("starting url")
+                            log("正在打开路径/网址", "info")
+                            wechat("已打开路径/网址%s"%url, executant_wrapper_object)
+                            wechat_window.minimize()
+                            os.system("start %s"%url)
+                        elif command == "/exit":
+                            say_in_english("exit command detected")
+                            log("检测到终端退出指令", "info")
+                            say_in_english("terminal listening task terminated")
+                            log("终端监听任务终止", "info")
+                            wechat("终端已关闭", executant_wrapper_object)
+                            wechat_window.minimize()
+                            exit(0)
+            time.sleep(1)
+    except Exception as e:
+        log("监听中发生错误，我们获取了以下信息", "warning")
+        say_in_english("an error was caught")
+        log(str(e), "error")
+        is_continue = False
+        while True:
+            result = input()
+            if result.isspace() or result == "":
+                break
+            log("[本地终端指令] %s"%result, "info")
+            if result == "restart":
+                log("重启终端", "info")
+                say_in_english("restarting terminal")
+                is_continue = True
+                break
+            log("未知指令", "warning")
+            continue
+        if is_continue:
+            continue
+        break
