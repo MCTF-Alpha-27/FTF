@@ -1,0 +1,2 @@
+class TransferTerminalControl(Exception):
+    pass

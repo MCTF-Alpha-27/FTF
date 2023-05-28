@@ -3,6 +3,7 @@ from libs import *
 
 while True:
     os.system("cls")
+    os.system("title FTF v1.3.0")
     log("终端启动中", "info")
     log("正在连接到微信", "info")
     say_in_english("starting terminal")
@@ -23,7 +24,7 @@ while True:
     try:
         executant_window = wechat_window.child_window(title="一只叫迷迭香的菲林", control_type="ListItem")
         executant_wrapper_object = executant_window.wrapper_object()
-        command_list = ["/start-protocol", "/stop-protocol", "/shutdown", "/open-url", "/exit"]
+        command_list = ["/start-protocol", "/stop-protocol", "/shutdown", "/open-url", "/exit", "/transfer"]
         while True:
             for i in executant_wrapper_object.descendants():
                 if i.friendly_class_name() == "Edit":
@@ -35,8 +36,8 @@ while True:
                     # input()
                     if i.window_text().split(" ")[0] in command_list:
                         command: str = i.window_text()
-                        log("[远程终端指令] %s"%command, "info")
-                        say_in_english("command received: %s"%command.replace("/", ""))
+                        log("[便携式远程终端指令] %s"%command, "info")
+                        say_in_english("command received: %s"%command[1:])
                         if command == "/start-protocol":
                             say_in_english("protocol activation command detected")
                             log("检测到协议激活指令", "info")
@@ -62,7 +63,7 @@ while True:
                             log("检测到路径/网址启动指令", "info")
                             url = ""
                             for i in command.split(" ")[1:]:
-                                url += i
+                                url += i + " "
                             say_in_english("getting url")
                             log("获取到路径/网址: %s"%url, "info")
                             say_in_english("starting url")
@@ -78,17 +79,28 @@ while True:
                             wechat("终端已关闭", executant_wrapper_object)
                             wechat_window.minimize()
                             exit(0)
+                        elif command == "/transfer":
+                            say_in_english("transfer command detected")
+                            log("检测到终端控制方式更改指令", "info")
+                            say_in_english("transfering terminal control")
+                            log("正在更改终端控制方式", "info")
+                            wechat("终端控制方式已由便携式远程终端控制更改为本地控制，你所有的便携式远程终端操作权限已被转移至本地远程终端", executant_wrapper_object)
+                            wechat_window.minimize()
+                            raise TransferTerminalControl("便携式远程终端要求将控制权限转为本地远程终端。若要重新将权限移交便携式远程终端，请在本地远程终端中使用restart指令重启终端")
             time.sleep(1)
     except Exception as e:
-        log("监听中发生错误，我们获取了以下信息", "warning")
-        say_in_english("an error was caught")
-        log(str(e), "error")
+        if type(e) is TransferTerminalControl:
+            log(str(e), "info")
+        else:
+            log("监听中发生错误，我们获取了以下信息", "warning")
+            say_in_english("an error was caught")
+            log(str(e), "error")
         is_continue = False
         while True:
             result = input()
             if result.isspace() or result == "":
                 break
-            log("[本地终端指令] %s"%result, "info")
+            log("[远程终端指令] %s"%result, "info")
             if result == "restart":
                 log("重启终端", "info")
                 say_in_english("restarting terminal")

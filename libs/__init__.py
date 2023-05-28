@@ -5,6 +5,7 @@ import os
 import pyautogui
 from psutil import process_iter
 from colorama import Fore, init
+from .exceptions import *
 
 if not os.path.exists("logs"):
     os.mkdir("logs")
