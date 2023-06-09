@@ -1,10 +1,41 @@
+import sys
 from pywinauto.application import Application
 from libs import *
 
+os.system("title FTF v2.0.0")
+
 while True:
-    os.system("cls")
-    os.system("title FTF v1.3.0")
-    log("终端启动中", "info")
+    while True:
+        os.system("cls")
+        print("欢迎使用《朝花夕拾协议》终端\n按下q键以退出\n")
+        print("1. 《朝花夕拾协议》是什么")
+        print("2. 《朝花夕拾协议》试题")
+        print("3. 启动《朝花夕拾协议》命令行")
+        print("4. 启动《朝花夕拾协议》监听终端")
+        result = choice("1234q", "请选择你要使用的功能:", hide=True)
+        if result == 1:
+            log("正在打开《朝花夕拾协议》", "info")
+            os.system("start https://docs.qq.com/doc/p/3e9d3da6a65f6a2a6d57f74d1c7a4a7bc2e6cf55?u=ee618ac0d45149c5a407d1dcf3e9d78d")
+        elif result == 2:
+            log("正在打开《朝花夕拾协议》试题", "info")
+            os.system("start https://docs.qq.com/doc/p/d46f28744498dcd14313090c195ee1b629971f9f?u=ee618ac0d45149c5a407d1dcf3e9d78d")
+        elif result == 3:
+            try:
+                log("《朝花夕拾协议》命令行启动", "info")
+                FTF_cmd.cmdloop()
+            except CommandLineExit:
+                continue
+            except AdminMode:
+                try:
+                    FTF_ADMIN_cmd.cmdloop()
+                except CommandLineExit:
+                    continue
+        elif result == 4:
+            break
+        else:
+            sys.exit(0)
+
+    log("监听终端启动中", "info")
     log("正在连接到微信", "info")
     say_in_english("starting terminal")
     say_in_english("connecting")
@@ -28,15 +59,9 @@ while True:
         while True:
             for i in executant_wrapper_object.descendants():
                 if i.friendly_class_name() == "Edit":
-                    # 我草你妈妈微信，byd这Static怎么一开始对的后来会变成Edit的是吧，太神奇了
-                    # log(i.friendly_class_name(), "debug")
-                    # log(i.window_text(), "debug")
-                    # log(i.window_text().split(" "), "debug")
-                    # log(i.window_text().split(" ")[0], "debug")
-                    # input()
                     if i.window_text().split(" ")[0] in command_list:
                         command: str = i.window_text()
-                        log("[便携式远程终端指令] %s"%command, "info")
+                        log("[远程终端指令] %s"%command, "info")
                         say_in_english("command received: %s"%command[1:])
                         if command == "/start-protocol":
                             say_in_english("protocol activation command detected")
@@ -84,9 +109,9 @@ while True:
                             log("检测到终端控制方式更改指令", "info")
                             say_in_english("transfering terminal control")
                             log("正在更改终端控制方式", "info")
-                            wechat("终端控制方式已由便携式远程终端控制更改为本地控制，你所有的便携式远程终端操作权限已被转移至本地远程终端", executant_wrapper_object)
+                            wechat("终端控制方式已由远程终端控制更改为本地终端控制，你所有的远程终端操作权限已被转移至本地终端", executant_wrapper_object)
                             wechat_window.minimize()
-                            raise TransferTerminalControl("便携式远程终端要求将控制权限转为本地远程终端。若要重新将权限移交便携式远程终端，请在本地远程终端中使用restart指令重启终端")
+                            raise TransferTerminalControl("远程终端要求将控制权限转为本地终端。若要重新将权限移交远程终端，请在本地终端中使用restart指令重启终端")
             time.sleep(1)
     except Exception as e:
         if type(e) is TransferTerminalControl:
@@ -100,7 +125,7 @@ while True:
             result = input()
             if result.isspace() or result == "":
                 break
-            log("[远程终端指令] %s"%result, "info")
+            log("[监听终端指令] %s"%result, "info")
             if result == "restart":
                 log("重启终端", "info")
                 say_in_english("restarting terminal")
