@@ -38,17 +38,18 @@ class FTFCmd(Cmd):
             return
         raise CommandLineExit()
     
-    def help_ftf(self):
-        for i in range(2):
-            os.system("color 0c")
-            sleep(0.1)
-            os.system("color 0a")
-            sleep(0.1)
-        sleep(1)
+def help_ftf():
+    for i in range(2):
         os.system("color 0c")
-        raise AdminMode()
+        sleep(0.01)
+        os.system("color 0a")
+        sleep(0.01)
+    sleep(2)
+    os.system("color 0c")
+    raise AdminMode()
 
 FTF_cmd = FTFCmd()
+FTF_cmd.help_ftf = help_ftf
 
 class FTFAdminCmd(FTFCmd):
     intro = "欢迎您，协议创始人\n一切为了不远后的旧事重提\n"
@@ -59,7 +60,8 @@ class FTFAdminCmd(FTFCmd):
         os.system("color 0c")
         return result
 
-    def help_ftf(self):
-        print("您已处在协议创始人权限下")
+def help_ftf():
+    print("您已处在协议创始人权限下")
 
 FTF_ADMIN_cmd = FTFAdminCmd()
+FTF_ADMIN_cmd.help_ftf = help_ftf
