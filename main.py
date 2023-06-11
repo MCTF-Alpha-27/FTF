@@ -2,7 +2,7 @@ import sys
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.0.0")
+os.system("title FTF v2.0.1")
 
 while True:
     while True:
