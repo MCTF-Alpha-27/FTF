@@ -2,10 +2,14 @@ import sys
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.0.1")
+os.system("title FTF v2.1.0")
 
 while True:
     while True:
+        FTF_cmd = FTFCmd()
+        FTF_cmd.help_ftf = help_ftf
+        FTF_ADMIN_cmd = FTFAdminCmd()
+        FTF_ADMIN_cmd.help_ftf = help_ftf_admin
         os.system("cls")
         print("欢迎使用《朝花夕拾协议》终端\n按下q键以退出\n")
         print("1. 《朝花夕拾协议》是什么")
@@ -32,7 +36,7 @@ while True:
                     continue
         elif result == 4:
             break
-        else:
+        elif result == 5:
             sys.exit(0)
 
     log("监听终端启动中", "info")

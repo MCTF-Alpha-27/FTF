@@ -1,9 +1,17 @@
 import os
+import glob
+import importlib
 from cmd import Cmd
 from typing import IO
 from time import sleep
 from .exceptions import *
 from .functions import log
+
+def loadcmd():
+    for i in glob.glob("libs\\ExternalCommands\\cmd_*.py"):
+        plugin_file_name = i.replace("\\", ".")[0:-3]
+        log("External Commands: " + plugin_file_name, "info")
+        importlib.import_module(plugin_file_name)
 
 class FTFCmd(Cmd):
     intro = "欢迎使用《朝花夕拾协议》命令行\n"
@@ -19,23 +27,23 @@ class FTFCmd(Cmd):
     def emptyline(self):
         return
     
-    def preloop(self):
+    def preloop(self) -> None:
         os.system("cls")
 
     def default(self, line: str) -> None:
         os.system(line)
 
     def onecmd(self, line: str) -> bool:
-        log(self.prompt + line, "info")
+        if not line == "" and not line.isspace():
+            log(self.prompt + line, "info")
         return super().onecmd(line)
 
     def do_exit(self, args: str):
-        """
-        退出《朝花夕拾协议》命令行
-        """
+        """退出《朝花夕拾协议》命令行"""
         if args.split(" ")[0] == "/?":
             print(self.do_exit.__doc__)
             return
+        loadcmd()
         raise CommandLineExit()
     
 def help_ftf():
@@ -48,9 +56,6 @@ def help_ftf():
     os.system("color 0c")
     raise AdminMode()
 
-FTF_cmd = FTFCmd()
-FTF_cmd.help_ftf = help_ftf
-
 class FTFAdminCmd(FTFCmd):
     intro = "欢迎您，协议创始人\n一切为了不远后的旧事重提\n"
     prompt = "[FTF ADMIN] "
@@ -60,8 +65,7 @@ class FTFAdminCmd(FTFCmd):
         os.system("color 0c")
         return result
 
-def help_ftf():
+def help_ftf_admin():
     print("您已处在协议创始人权限下")
 
-FTF_ADMIN_cmd = FTFAdminCmd()
-FTF_ADMIN_cmd.help_ftf = help_ftf
+loadcmd()
