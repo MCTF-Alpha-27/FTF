@@ -2,7 +2,7 @@ import sys
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.1.0")
+os.system("title FTF v2.1.1")
 
 while True:
     while True:
@@ -19,10 +19,12 @@ while True:
         result = choice("1234q", "请选择你要使用的功能:", hide=True)
         if result == 1:
             log("正在打开《朝花夕拾协议》", "info")
-            os.system("start https://docs.qq.com/doc/p/3e9d3da6a65f6a2a6d57f74d1c7a4a7bc2e6cf55?u=ee618ac0d45149c5a407d1dcf3e9d78d")
+            os.system(
+                "start https://docs.qq.com/doc/p/c9ef326c964ac8a2fea816ad59822ad3cba514f8")
         elif result == 2:
             log("正在打开《朝花夕拾协议》试题", "info")
-            os.system("start https://docs.qq.com/doc/p/d46f28744498dcd14313090c195ee1b629971f9f?u=ee618ac0d45149c5a407d1dcf3e9d78d")
+            os.system(
+                "start https://docs.qq.com/doc/p/d46f28744498dcd14313090c195ee1b629971f9f?u=ee618ac0d45149c5a407d1dcf3e9d78d")
         elif result == 3:
             try:
                 log("《朝花夕拾协议》命令行启动", "info")
@@ -57,65 +59,71 @@ while True:
     say_in_english("start listening")
 
     try:
-        executant_window = wechat_window.child_window(title="一只叫迷迭香的菲林", control_type="ListItem")
+        executant_window = wechat_window.child_window(
+            title="一只叫迷迭香的菲林", control_type="ListItem")
         executant_wrapper_object = executant_window.wrapper_object()
-        command_list = ["/start-protocol", "/stop-protocol", "/shutdown", "/open-url", "/exit", "/transfer"]
+        command_list = ["/start-protocol", "/stop-protocol",
+                        "/shutdown", "/open-url", "/exit", "/transfer"]
         while True:
             for i in executant_wrapper_object.descendants():
-                if i.friendly_class_name() == "Edit":
-                    if i.window_text().split(" ")[0] in command_list:
-                        command: str = i.window_text()
-                        log("[远程终端指令] %s"%command, "info")
-                        say_in_english("command received: %s"%command[1:])
-                        if command == "/start-protocol":
-                            say_in_english("protocol activation command detected")
-                            log("检测到协议激活指令", "info")
-                            log("协议已激活", "info")
-                            wechat("协议已激活", executant_wrapper_object)
-                            wechat_window.minimize()
-                        elif command == "/stop-protocol":
-                            say_in_english("protocol terminated command detected")
-                            log("检测到协议终止指令", "info")
-                            log("协议已终止", "info")
-                            wechat("协议已终止", executant_wrapper_object)
-                            wechat_window.minimize()
-                        elif command == "/shutdown":
-                            say_in_english("shutdown command detected")
-                            log("检测到关机指令", "info")
-                            say_in_english("the computer will shutdown in T-minus ten seconds")
-                            log("将在10秒后关机", "info")
-                            wechat("将在10秒后关机", executant_wrapper_object)
-                            wechat_window.minimize()
-                            os.system("shutdown -s -t 10")
-                        elif command.startswith("/open-url"):
-                            say_in_english("url open command detected")
-                            log("检测到路径/网址启动指令", "info")
-                            url = ""
-                            for i in command.split(" ")[1:]:
-                                url += i + " "
-                            say_in_english("getting url")
-                            log("获取到路径/网址: %s"%url, "info")
-                            say_in_english("starting url")
-                            log("正在打开路径/网址", "info")
-                            wechat("已打开路径/网址%s"%url, executant_wrapper_object)
-                            wechat_window.minimize()
-                            os.system("start %s"%url)
-                        elif command == "/exit":
-                            say_in_english("exit command detected")
-                            log("检测到终端退出指令", "info")
-                            say_in_english("terminal listening task terminated")
-                            log("终端监听任务终止", "info")
-                            wechat("终端已关闭", executant_wrapper_object)
-                            wechat_window.minimize()
-                            exit(0)
-                        elif command == "/transfer":
-                            say_in_english("transfer command detected")
-                            log("检测到终端控制方式更改指令", "info")
-                            say_in_english("transfering terminal control")
-                            log("正在更改终端控制方式", "info")
-                            wechat("终端控制方式已由远程终端控制更改为本地终端控制，你所有的远程终端操作权限已被转移至本地终端", executant_wrapper_object)
-                            wechat_window.minimize()
-                            raise TransferTerminalControl("远程终端要求将控制权限转为本地终端。若要重新将权限移交远程终端，请在本地终端中使用restart指令重启终端")
+                if i.window_text().split(" ")[0] in command_list:
+                    log("ControlType: %s" % i.friendly_class_name(), "debug")
+                    log("↑就这B奥，总是用着用着突然就用不了了，神奇吧？MD一会儿变成ListItem一会儿变成Static的，微信我RNM", "debug")
+                    command: str = i.window_text()
+                    log("[远程终端指令] %s" % command, "info")
+                    say_in_english("command received: %s" % command[1:])
+                    if command == "/start-protocol":
+                        say_in_english("protocol activation command detected")
+                        log("检测到协议激活指令", "info")
+                        log("协议已激活", "info")
+                        wechat("协议已激活", executant_wrapper_object)
+                        wechat_window.minimize()
+                    elif command == "/stop-protocol":
+                        say_in_english("protocol terminated command detected")
+                        log("检测到协议终止指令", "info")
+                        log("协议已终止", "info")
+                        wechat("协议已终止", executant_wrapper_object)
+                        wechat_window.minimize()
+                    elif command == "/shutdown":
+                        say_in_english("shutdown command detected")
+                        log("检测到关机指令", "info")
+                        say_in_english(
+                            "the computer will shutdown in T-minus ten seconds")
+                        log("将在10秒后关机", "info")
+                        wechat("将在10秒后关机", executant_wrapper_object)
+                        wechat_window.minimize()
+                        os.system("shutdown -s -t 10")
+                    elif command.startswith("/open-url"):
+                        say_in_english("url open command detected")
+                        log("检测到路径/网址启动指令", "info")
+                        url = ""
+                        for i in command.split(" ")[1:]:
+                            url += i + " "
+                        say_in_english("getting url")
+                        log("获取到路径/网址: %s" % url, "info")
+                        say_in_english("starting url")
+                        log("正在打开路径/网址", "info")
+                        wechat("已打开路径/网址%s" % url, executant_wrapper_object)
+                        wechat_window.minimize()
+                        os.system("start %s" % url)
+                    elif command == "/exit":
+                        say_in_english("exit command detected")
+                        log("检测到终端退出指令", "info")
+                        say_in_english("terminal listening task terminated")
+                        log("终端监听任务终止", "info")
+                        wechat("终端已关闭", executant_wrapper_object)
+                        wechat_window.minimize()
+                        exit(0)
+                    elif command == "/transfer":
+                        say_in_english("transfer command detected")
+                        log("检测到终端控制方式更改指令", "info")
+                        say_in_english("transfering terminal control")
+                        log("正在更改终端控制方式", "info")
+                        wechat(
+                            "终端控制方式已由远程终端控制更改为本地终端控制，你所有的远程终端操作权限已被转移至本地终端", executant_wrapper_object)
+                        wechat_window.minimize()
+                        raise TransferTerminalControl(
+                            "远程终端要求将控制权限转为本地终端。若要重新将权限移交远程终端，请在本地终端中使用restart指令重启终端")
             time.sleep(1)
     except Exception as e:
         if type(e) is TransferTerminalControl:
@@ -124,12 +132,13 @@ while True:
             log("监听中发生错误，我们获取了以下信息", "warning")
             say_in_english("an error was caught")
             log(str(e), "error")
+            print(Fore.BLUE)
         is_continue = False
         while True:
-            result = input()
+            result = input("[FTF Terminal Listener] ")
             if result.isspace() or result == "":
                 break
-            log("[监听终端指令] %s"%result, "info")
+            log("[监听终端指令] %s" % result, "info")
             if result == "restart":
                 log("重启终端", "info")
                 say_in_english("restarting terminal")

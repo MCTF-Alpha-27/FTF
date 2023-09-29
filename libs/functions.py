@@ -9,7 +9,7 @@ from colorama import Fore, init
 if not os.path.exists("logs"):
     os.mkdir("logs")
 
-logging.basicConfig(filename="logs/%s.log"%time.strftime(r"%Y-%m-%d-%H.%M.%S"), level=logging.INFO, format="[%(asctime)s] [%(levelname)s]: %(message)s", encoding="utf-8")
+logging.basicConfig(filename="logs/%s.log"%time.strftime(r"%Y-%m-%d-%H.%M.%S"), level=logging.DEBUG, format="[%(asctime)s] [%(levelname)s]: %(message)s", encoding="utf-8")
 
 engine = pyttsx3.init()
 
@@ -26,7 +26,6 @@ def get_wechat_pid():
         if pid_dic["name"] == "WeChat.exe":
             return pid_dic["pid"]
 
-logfile_ = True
 def log(text, level="normal"):
     init()
     if level == "normal":
@@ -39,18 +38,23 @@ def log(text, level="normal"):
         print(Fore.YELLOW + "[%s] [%s]: %s" % (
             time.strftime(r"%Y-%m-%d %H:%M:%S"), "WARNING", text))
         logging.warning(text)
+        print(Fore.GREEN, end="")
     elif level == "error":
         print(Fore.RED + "[%s] [%s]: %s" % (
             time.strftime(r"%Y-%m-%d %H:%M:%S"), "ERROR", text))
         logging.error(text)
+        print(Fore.GREEN, end="")
     elif level == "debug":
-        print(Fore.WHITE + "[%s] [%s]: %s" % (
+        print(Fore.BLUE + "[%s] [%s]: %s" % (
             time.strftime(r"%Y-%m-%d %H:%M:%S"), "DEBUG", text))
         logging.debug(text)
+        print(Fore.GREEN, end="")
     else:
         print("[%s] [%s]: %s" % (
             time.strftime(r"%Y-%m-%d %H:%M:%S"), level, text))
         logging.info(text)
+        print(Fore.GREEN, end="")
+
 log("初始化终端", "info")
 
 def wechat(text, executant_wrapper_object, *, with_spaces=True):

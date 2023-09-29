@@ -5,12 +5,12 @@ from cmd import Cmd
 from typing import IO
 from time import sleep
 from .exceptions import *
-from .functions import log
+from .functions import log, choice
 
 def loadcmd():
     for i in glob.glob("libs\\ExternalCommands\\cmd_*.py"):
         plugin_file_name = i.replace("\\", ".")[0:-3]
-        log("External Commands: " + plugin_file_name, "info")
+        log("External Commands: " + plugin_file_name, "debug")
         importlib.import_module(plugin_file_name)
 
 class FTFCmd(Cmd):
@@ -61,6 +61,9 @@ class FTFAdminCmd(FTFCmd):
     prompt = "[FTF ADMIN] "
 
     def onecmd(self, line: str) -> bool:
+        c = choice("YN", "协议创始人，请牢记您的命令一旦执行便无法撤回，你确定要执行此命令吗")
+        if c == 2:
+            return
         result = super().onecmd(line)
         os.system("color 0c")
         return result
