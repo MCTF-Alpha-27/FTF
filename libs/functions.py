@@ -3,13 +3,14 @@ import time
 import logging
 import pyttsx3
 import pyautogui
+from . import config
 from psutil import process_iter
 from colorama import Fore, init
 
+logging.basicConfig(filename="logs/%s.log"%time.strftime(r"%Y-%m-%d-%H.%M.%S"), level=logging.DEBUG, format="[%(asctime)s] [%(levelname)s]: %(message)s", encoding="utf-8")
+
 if not os.path.exists("logs"):
     os.mkdir("logs")
-
-logging.basicConfig(filename="logs/%s.log"%time.strftime(r"%Y-%m-%d-%H.%M.%S"), level=logging.DEBUG, format="[%(asctime)s] [%(levelname)s]: %(message)s", encoding="utf-8")
 
 engine = pyttsx3.init()
 
@@ -45,8 +46,9 @@ def log(text, level="normal"):
         logging.error(text)
         print(Fore.GREEN, end="")
     elif level == "debug":
-        print(Fore.BLUE + "[%s] [%s]: %s" % (
-            time.strftime(r"%Y-%m-%d %H:%M:%S"), "DEBUG", text))
+        if config.debug:
+            print(Fore.BLUE + "[%s] [%s]: %s" % (
+                time.strftime(r"%Y-%m-%d %H:%M:%S"), "DEBUG", text))
         logging.debug(text)
         print(Fore.GREEN, end="")
     else:

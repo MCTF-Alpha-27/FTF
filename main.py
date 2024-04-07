@@ -2,14 +2,15 @@ import sys
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.1.1")
+os.system("title FTF v2.1.2")
+
+FTF_cmd = FTFCmd()
+FTF_cmd.help_ftf = help_ftf
+FTF_ADMIN_cmd = FTFAdminCmd()
+FTF_ADMIN_cmd.help_ftf = help_ftf_admin
 
 while True:
     while True:
-        FTF_cmd = FTFCmd()
-        FTF_cmd.help_ftf = help_ftf
-        FTF_ADMIN_cmd = FTFAdminCmd()
-        FTF_ADMIN_cmd.help_ftf = help_ftf_admin
         os.system("cls")
         print("欢迎使用《朝花夕拾协议》终端\n按下q键以退出\n")
         print("1. 《朝花夕拾协议》是什么")
@@ -62,27 +63,19 @@ while True:
         executant_window = wechat_window.child_window(
             title="一只叫迷迭香的菲林", control_type="ListItem")
         executant_wrapper_object = executant_window.wrapper_object()
-        command_list = ["/start-protocol", "/stop-protocol",
-                        "/shutdown", "/open-url", "/exit", "/transfer"]
+        command_list = ["/test", "/shutdown", "/open-url", "/exit", "/transfer"]
         while True:
             for i in executant_wrapper_object.descendants():
                 if i.window_text().split(" ")[0] in command_list:
                     log("ControlType: %s" % i.friendly_class_name(), "debug")
-                    log("↑就这B奥，总是用着用着突然就用不了了，神奇吧？MD一会儿变成ListItem一会儿变成Static的，微信我RNM", "debug")
                     command: str = i.window_text()
                     log("[远程终端指令] %s" % command, "info")
                     say_in_english("command received: %s" % command[1:])
-                    if command == "/start-protocol":
+                    if command == "/test":
                         say_in_english("protocol activation command detected")
-                        log("检测到协议激活指令", "info")
-                        log("协议已激活", "info")
-                        wechat("协议已激活", executant_wrapper_object)
-                        wechat_window.minimize()
-                    elif command == "/stop-protocol":
-                        say_in_english("protocol terminated command detected")
-                        log("检测到协议终止指令", "info")
-                        log("协议已终止", "info")
-                        wechat("协议已终止", executant_wrapper_object)
+                        log("检测到测试指令", "info")
+                        log("一切为了不远后的旧事重提", "info")
+                        wechat("一切为了不远后的旧事重提", executant_wrapper_object)
                         wechat_window.minimize()
                     elif command == "/shutdown":
                         say_in_english("shutdown command detected")
