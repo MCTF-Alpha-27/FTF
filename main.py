@@ -2,7 +2,7 @@ import sys
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.1.2")
+os.system("title FTF v2.2.0")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -17,15 +17,27 @@ while True:
         print("2. 《朝花夕拾协议》试题")
         print("3. 启动《朝花夕拾协议》命令行")
         print("4. 启动《朝花夕拾协议》监听终端")
+
+        if config.ftfpath.startswith("{") and config.ftfpath.endswith("}"):
+            log("未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath", "warning")
+            raise UserWarning(
+                "未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath"
+            )
+        elif not os.path.exists(config.ftfpath):
+            log("《朝花夕拾协议》根目录无效，请确认路径是否正确，然后前往config.ini中修改ftfpath", "warning")
+            raise UserWarning(
+                "《朝花夕拾协议》根目录无效，请确认路径是否正确，然后前往config.ini中修改ftfpath"
+            )
+
         result = choice("1234q", "请选择你要使用的功能:", hide=True)
         if result == 1:
             log("正在打开《朝花夕拾协议》", "info")
             os.system(
-                "start https://docs.qq.com/doc/p/c9ef326c964ac8a2fea816ad59822ad3cba514f8")
+                "start %s/朝花夕拾协议.docx" % config.ftfpath)
         elif result == 2:
             log("正在打开《朝花夕拾协议》试题", "info")
             os.system(
-                "start https://docs.qq.com/doc/p/d46f28744498dcd14313090c195ee1b629971f9f?u=ee618ac0d45149c5a407d1dcf3e9d78d")
+                "start %s/《朝花夕拾协议》熟悉程度统一考试.docx" % config.ftfpath)
         elif result == 3:
             try:
                 log("《朝花夕拾协议》命令行启动", "info")
@@ -63,14 +75,14 @@ while True:
         executant_window = wechat_window.child_window(
             title="一只叫迷迭香的菲林", control_type="ListItem")
         executant_wrapper_object = executant_window.wrapper_object()
-        command_list = ["/test", "/shutdown", "/open-url", "/exit", "/transfer"]
+        command_list = ["/test", "/shutdown", "/open-url", "/exec", "/exit", "/transfer"]
         while True:
             for i in executant_wrapper_object.descendants():
                 if i.window_text().split(" ")[0] in command_list:
                     log("ControlType: %s" % i.friendly_class_name(), "debug")
                     command: str = i.window_text()
                     log("[远程终端指令] %s" % command, "info")
-                    say_in_english("command received: %s" % command[1:])
+                    say_in_english("command received: %s" % command.split(" ")[0][1:])
                     if command == "/test":
                         say_in_english("protocol activation command detected")
                         log("检测到测试指令", "info")
@@ -99,6 +111,23 @@ while True:
                         wechat("已打开路径/网址%s" % url, executant_wrapper_object)
                         wechat_window.minimize()
                         os.system("start %s" % url)
+                    elif command.split(" ")[0] == "/exec":
+                        say_in_english("remote command execution detected")
+                        remote_cmd = ""
+                        for i in command.split(" ")[1:]:
+                            remote_cmd += i + " "
+                        log("检测到远程执行命令: %s" % remote_cmd, "info")
+                        say_in_english("executing command")
+                        log("开始执行", "info")
+                        try:
+                            exec(remote_cmd)
+                        except Exception as e:
+                            log("执行中发生错误", "warning")
+                            log(str(e), "error")
+                            wechat(str(e), executant_wrapper_object)
+                            wechat_window.minimize()
+                        wechat("执行完毕", executant_wrapper_object)
+                        wechat_window.minimize()
                     elif command == "/exit":
                         say_in_english("exit command detected")
                         log("检测到终端退出指令", "info")

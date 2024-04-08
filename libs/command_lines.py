@@ -61,6 +61,8 @@ class FTFAdminCmd(FTFCmd):
     prompt = "[FTF ADMIN] "
 
     def onecmd(self, line: str) -> bool:
+        if line == "" or line.isspace():
+            return
         c = choice("YN", "协议创始人，请牢记您的命令一旦执行便无法撤回，您确定要执行此命令吗")
         if c == 2:
             return
