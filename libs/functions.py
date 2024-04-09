@@ -3,6 +3,7 @@ import time
 import logging
 import pyttsx3
 import pyautogui
+import subprocess
 from . import config
 from psutil import process_iter
 from colorama import Fore, init
@@ -57,8 +58,6 @@ def log(text, level="normal"):
         logging.info(text)
         print(Fore.GREEN, end="")
 
-log("初始化终端", "info")
-
 def wechat(text, executant_wrapper_object, *, with_spaces=True):
     pyautogui.hotkey("ctrl", "alt", "w")
     executant_wrapper_object.click_input()
@@ -86,3 +85,15 @@ def choice(choose="YN", text="Y/N", default=False, timeout="10", *, hide=False):
                 "按键默认值不在设置的按键中"
             )
     return os.system(choice)
+
+def copyfile(*files):
+    file_get_item = ""
+    for i in files:
+        if not os.path.exists(i):
+            continue
+        file_get_item += i + ","
+    file_get_item = file_get_item[0:len(file_get_item) - 1]
+    args = ["powershell", "Get-Item %s | Set-Clipboard"%file_get_item]
+    subprocess.Popen(args)
+
+log("初始化终端", "info")

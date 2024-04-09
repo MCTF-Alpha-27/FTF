@@ -2,7 +2,7 @@ import sys
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.2.0")
+os.system("title FTF v2.3.0")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -75,7 +75,7 @@ while True:
         executant_window = wechat_window.child_window(
             title="一只叫迷迭香的菲林", control_type="ListItem")
         executant_wrapper_object = executant_window.wrapper_object()
-        command_list = ["/test", "/shutdown", "/open-url", "/exec", "/exit", "/transfer"]
+        command_list = ["/test", "/shutdown", "/open-url", "/exec", "/send-file", "/exit", "/transfer"]
         while True:
             for i in executant_wrapper_object.descendants():
                 if i.window_text().split(" ")[0] in command_list:
@@ -128,6 +128,17 @@ while True:
                             wechat_window.minimize()
                         wechat("执行完毕", executant_wrapper_object)
                         wechat_window.minimize()
+                    elif command.split(" ")[0] == "/send-file":
+                        say_in_english("file sending command detected")
+                        log("检测到文件发送指令", "info")
+                        say_in_english("getting file")
+                        log("开始获取文件", "info")
+                        copyfile(*command.split(" ")[1:])
+                        log("开始发送", "info")
+                        wechat("开始发送", executant_wrapper_object)
+                        pyautogui.hotkey("ctrl", "v")
+                        pyautogui.hotkey("enter")
+                        wechat_window.minimize()
                     elif command == "/exit":
                         say_in_english("exit command detected")
                         log("检测到终端退出指令", "info")
@@ -145,7 +156,7 @@ while True:
                             "终端控制方式已由远程终端控制更改为本地终端控制，你所有的远程终端操作权限已被转移至本地终端", executant_wrapper_object)
                         wechat_window.minimize()
                         raise TransferTerminalControl(
-                            "远程终端要求将控制权限转为本地终端。若要重新将权限移交远程终端，请在本地终端中使用restart指令重启终端")
+                            "远程终端要求将控制权限转交本地终端。若要重新将权限移交远程终端，请在监听终端命令行中使用restart指令重启终端")
             time.sleep(1)
     except Exception as e:
         if type(e) is TransferTerminalControl:
