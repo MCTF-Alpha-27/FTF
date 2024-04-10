@@ -2,7 +2,7 @@ import sys
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.3.0")
+os.system("title FTF v2.4.0")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -68,14 +68,15 @@ while True:
     log("已尝试连接，若没有成功，请手动启动微信", "info")
     say_in_english("attempted to connect")
     say_in_english("please stand by")
+    log("连接控制器%s" % config.controller, "info")
     log("开始监听", "info")
     say_in_english("start listening")
 
     try:
         executant_window = wechat_window.child_window(
-            title="一只叫迷迭香的菲林", control_type="ListItem")
+            title=config.controller, control_type="ListItem")
         executant_wrapper_object = executant_window.wrapper_object()
-        command_list = ["/test", "/shutdown", "/open-url", "/exec", "/send-file", "/exit", "/transfer"]
+        command_list = ["/test", "/shutdown", "/open-url", "/exec", "/send-file", "/screenshot", "/exit", "/transfer"]
         while True:
             for i in executant_wrapper_object.descendants():
                 if i.window_text().split(" ")[0] in command_list:
@@ -139,6 +140,18 @@ while True:
                         pyautogui.hotkey("ctrl", "v")
                         pyautogui.hotkey("enter")
                         wechat_window.minimize()
+                    elif command == "/screenshot":
+                        say_in_english("screenshot command detected")
+                        log("检测到截屏指令", "info")
+                        pyautogui.screenshot().save("screenshot.jpg")
+                        say_in_english("sending screenshot")
+                        log("发送截屏中", "info")
+                        copyfile("screenshot.jpg")
+                        wechat("发送截屏中", executant_wrapper_object)
+                        pyautogui.hotkey("ctrl", "v")
+                        pyautogui.hotkey("enter")
+                        wechat_window.minimize()
+                        os.remove("screenshot.jpg")
                     elif command == "/exit":
                         say_in_english("exit command detected")
                         log("检测到终端退出指令", "info")
@@ -157,6 +170,10 @@ while True:
                         wechat_window.minimize()
                         raise TransferTerminalControl(
                             "远程终端要求将控制权限转交本地终端。若要重新将权限移交远程终端，请在监听终端命令行中使用restart指令重启终端")
+                else:
+                    if i.window_text().split(" ")[0].startswith("/"):
+                        wechat("没有此命令", executant_wrapper_object)
+                        wechat_window.minimize()
             time.sleep(1)
     except Exception as e:
         if type(e) is TransferTerminalControl:
