@@ -1,8 +1,9 @@
 import sys
+import cv2
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.4.0")
+os.system("title FTF v2.5.0")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -68,7 +69,7 @@ while True:
     log("已尝试连接，若没有成功，请手动启动微信", "info")
     say_in_english("attempted to connect")
     say_in_english("please stand by")
-    log("连接控制器%s" % config.controller, "info")
+    log("连接到控制器: %s" % config.controller, "info")
     log("开始监听", "info")
     say_in_english("start listening")
 
@@ -76,7 +77,7 @@ while True:
         executant_window = wechat_window.child_window(
             title=config.controller, control_type="ListItem")
         executant_wrapper_object = executant_window.wrapper_object()
-        command_list = ["/test", "/shutdown", "/open-url", "/exec", "/send-file", "/screenshot", "/exit", "/transfer"]
+        command_list = ["/test", "/shutdown", "/open-url", "/exec", "/send-file", "/screenshot", "/camera-screenshot", "/exit", "/transfer"]
         while True:
             for i in executant_wrapper_object.descendants():
                 if i.window_text().split(" ")[0] in command_list:
@@ -152,6 +153,34 @@ while True:
                         pyautogui.hotkey("enter")
                         wechat_window.minimize()
                         os.remove("screenshot.jpg")
+                    elif command == "/camera-screenshot":
+                        say_in_english("camera screenshot command detected")
+                        log("检测到摄像头截屏指令", "info")
+                        cap = cv2.VideoCapture(0)
+                        if not cap.isOpened():
+                            say_in_english("unable to open camera")
+                            log("无法打开摄像头", "warning")
+                            wechat("无法打开摄像头", executant_wrapper_object)
+                            wechat_window.minimize()
+                            continue
+                        ret, frame = cap.read()
+                        if not ret:
+                            say_in_english("unable to capture image from camera")
+                            log("无法从摄像头捕获图像", "warning")
+                            wechat("无法从摄像头捕获图像", executant_wrapper_object)
+                            wechat_window.minimize()
+                            cap.release()
+                            continue
+                        cv2.imwrite("camera_screenshot.jpg", frame)
+                        cap.release()
+                        say_in_english("sending camera screenshot")
+                        log("发送摄像头截屏中", "info")
+                        copyfile("camera_screenshot.jpg")
+                        wechat("发送摄像头截屏中", executant_wrapper_object)
+                        pyautogui.hotkey("ctrl", "v")
+                        pyautogui.hotkey("enter")
+                        wechat_window.minimize()
+                        os.remove("camera_screenshot.jpg")
                     elif command == "/exit":
                         say_in_english("exit command detected")
                         log("检测到终端退出指令", "info")

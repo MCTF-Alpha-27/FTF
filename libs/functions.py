@@ -16,6 +16,8 @@ if not os.path.exists("logs"):
 engine = pyttsx3.init()
 
 def say_in_english(words):
+    if not config.voice:
+        return
     voices = engine.getProperty("voices")
     engine.setProperty("voice", voices[1].id)
     engine.setProperty("rate", 150)
