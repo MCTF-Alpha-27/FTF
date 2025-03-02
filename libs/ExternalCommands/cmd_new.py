@@ -8,7 +8,13 @@ FTFCmd.do_{0} = {0}
 """
 
 def new(self, cmd: str):
-    """创建一个新的外部命令"""
+    """
+    创建一个新的外部命令。
+
+    语法：new <cmd> [/?]
+        cmd     新命令的名称。
+        /?      显示此帮助文档。
+    """
     cmd = cmd.split(" ")[0]
     if cmd == "/?":
         print(new.__doc__)
