@@ -3,7 +3,7 @@ import cv2
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.6.0")
+os.system("title FTF v2.6.1")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -34,11 +34,11 @@ while True:
         if result == 1:
             log("正在打开《朝花夕拾协议》", "info")
             os.system(
-                "start %s/朝花夕拾协议.docx" % config.ftfpath)
+                f"start {config.ftfpath}/朝花夕拾协议.docx")
         elif result == 2:
             log("正在打开《朝花夕拾协议》试题", "info")
             os.system(
-                "start %s/《朝花夕拾协议》熟悉程度统一考试.docx" % config.ftfpath)
+                f"start {config.ftfpath}/《朝花夕拾协议》熟悉程度统一考试.docx")
         elif result == 3:
             try:
                 log("《朝花夕拾协议》命令行启动", "info")
@@ -69,7 +69,7 @@ while True:
     log("已尝试连接，若没有成功，请手动启动微信", "info")
     say_in_english("attempted to connect")
     say_in_english("please stand by")
-    log("连接到控制器: %s" % config.controller, "info")
+    log(f"连接到控制器: {config.controller}", "info")
     log("开始监听", "info")
     say_in_english("start listening")
 
@@ -81,10 +81,10 @@ while True:
         while True:
             for i in executant_wrapper_object.descendants():
                 if i.window_text().split(" ")[0] in command_list:
-                    log("ControlType: %s" % i.friendly_class_name(), "debug")
+                    log(f"ControlType: {i.friendly_class_name()}", "debug")
                     command: str = i.window_text()
-                    log("[远程终端指令] %s" % command, "info")
-                    say_in_english("command received: %s" % command.split(" ")[0][1:])
+                    log(f"[远程终端指令] {command}", "info")
+                    say_in_english(f"command received: {command.split(" ")[0][1:]}")
                     if command == "/test":
                         say_in_english("protocol activation command detected")
                         log("检测到测试指令", "info")
@@ -107,18 +107,18 @@ while True:
                         for i in command.split(" ")[1:]:
                             url += i + " "
                         say_in_english("getting url")
-                        log("获取到路径/网址: %s" % url, "info")
+                        log(f"获取到路径/网址: {url}", "info")
                         say_in_english("starting url")
                         log("正在打开路径/网址", "info")
-                        wechat("已打开路径/网址%s" % url, executant_wrapper_object)
+                        wechat(f"已打开路径/网址{url}", executant_wrapper_object)
                         wechat_window.minimize()
-                        os.system("start %s" % url)
+                        os.system(f"start {url}")
                     elif command.split(" ")[0] == "/exec":
                         say_in_english("remote command execution detected")
                         remote_cmd = ""
                         for i in command.split(" ")[1:]:
                             remote_cmd += i + " "
-                        log("检测到远程执行命令: %s" % remote_cmd, "info")
+                        log(f"检测到远程执行命令: {remote_cmd}", "info")
                         say_in_english("executing command")
                         log("开始执行", "info")
                         try:
@@ -217,7 +217,7 @@ while True:
             result = input("[FTF Terminal Listener] ")
             if result.isspace() or result == "":
                 break
-            log("[监听终端指令] %s" % result, "info")
+            log(f"[监听终端指令] {result}", "info")
             if result == "restart":
                 log("重启终端", "info")
                 say_in_english("restarting terminal")
