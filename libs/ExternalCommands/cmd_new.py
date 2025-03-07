@@ -19,13 +19,13 @@ def new(self, cmd: str):
     if cmd == "/?":
         print(new.__doc__)
         return
-    if os.path.exists("libs\\ExternalCommands\\cmd_%s.py"%cmd):
+    if os.path.exists(f"libs\\ExternalCommands\\cmd_{cmd}.py"):
         log("该外部命令已经存在，请更改您的外部命令名称", "warning")
         return
-    with open("libs\\ExternalCommands\\cmd_%s.py"%cmd, "w", encoding="utf-8") as f:
+    with open(f"libs\\ExternalCommands\\cmd_{cmd}.py", "w", encoding="utf-8") as f:
         func = ""
         new_cmd = ""
-        log("创建外部命令: libs\\ExternalCommands\\cmd_%s.py"%cmd, "info")
+        log(f"创建外部命令: libs\\ExternalCommands\\cmd_{cmd}.py", "info")
         log("请为新命令的函数编程，输入#end来结束编程", "info")
         while func != "#end":
             func = input("... ")
