@@ -74,7 +74,7 @@ class FTFCmd(Cmd):
             print(self.do_find.__doc__)
             return
         keywords = set(args.split(" in ")[0].split(" "))
-        documents = set(args.split(" in ")[1].split(" "))
+        documents = list(set(args.split(" in ")[1].split(" ")))
         if documents[0] == "*":
             count = 0
             for year in self.years:
