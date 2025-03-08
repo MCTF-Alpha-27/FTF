@@ -7,6 +7,7 @@ from typing import IO
 from time import sleep
 from docx import Document
 from colorama import Fore, init
+from collections import OrderedDict
 from .exceptions import *
 from .functions import log, choice
 from .config import ftfpath
@@ -74,7 +75,7 @@ class FTFCmd(Cmd):
             print(self.do_find.__doc__)
             return
         keywords = set(args.split(" in ")[0].split(" "))
-        documents = list(set(args.split(" in ")[1].split(" ")))
+        documents = list(OrderedDict.fromkeys(args.split(" in ")[1].split(" ")).keys())
         if documents[0] == "*":
             count = 0
             for year in self.years:
