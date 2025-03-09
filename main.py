@@ -3,7 +3,7 @@ import cv2
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.7.0")
+os.system("title FTF v2.7.1")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
