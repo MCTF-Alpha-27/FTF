@@ -45,7 +45,15 @@ class FTFCmd(Cmd):
     def onecmd(self, line: str) -> bool:
         if not line == "" and not line.isspace():
             log(self.prompt + line, "info", logfile_only=True)
-        return super().onecmd(line)
+        try:
+            callback = super().onecmd(line)
+        except Exception as e:
+            if isinstance(e, AdminMode) or isinstance(e, CommandLineExit):
+                raise e
+            print(f"{Fore.LIGHTRED_EX}{e.__class__.__name__}: {str(e)}")
+            log(f"{e.__class__.__name__}: {str(e)}", "error", logfile_only=True)
+            return False
+        return callback
 
     def do_exit(self, args: str):
         """
@@ -64,15 +72,17 @@ class FTFCmd(Cmd):
         """
         查找事件记录文档中的关键字词。
 
-        语法：find <keywords>/<regex> in [year <years> | month <months> | *] [/?]
+        语法：find <keywords>/<regex> in [year <years> | month <months> | only <document> | *] [/?]
             keywords        事件记录文档中的关键字词。
                             使用空格分隔多个关键字词，表示查找包含多个关键字词的项。
                             使用“&”符号连接多个关键字词，表示查找的项中必须同时包含这些关键字词。
-            regex           正则表达式。以“/”开头并以“/search”或“/match”结尾的字符串将被视为正则表达式。
-                            正则表达式以“/search”结尾表示从整个字符串中搜索匹配项。
+            regex           正则表达式。以“/”符号开头并以“/search”或“/match”结尾的字符串将被视为正则表达式。
+                            正则表达式以“/search”结尾表示从整个字符串中搜索匹配项；
                             正则表达式以“/match”结尾表示从字符串开头匹配。
             year <years>    事件记录文档所在的年份，可填多个，使用空格分隔。
             month <months>  事件记录文档所在的月份，可填多个，使用空格分隔。
+            only <document> 仅在指定的事件记录文档中查找关键字词。
+                            指定的事件记录文档格式为<year>/<month>，如“2023/1”表示2023年1月的事件记录文档。
             *               在所有文档中查找关键字词。
             /?              显示此帮助文档。
         """
@@ -196,19 +206,82 @@ class FTFCmd(Cmd):
             print(f"在{", ".join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词\n")
             log(f"在{", ".join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
+        elif documents[0] == "only":
+            count = 0
+            document = documents[1]
+            docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split('/')[1]}月.docx")
+            if not os.path.exists(docments_path):
+                print(f"未找到{document}的事件记录文档")
+                log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
+                return
+            doc = Document(docments_path)
+            line = 0
+            for paragraph in doc.paragraphs:
+                line += 1
+                for keyword in keywords:
+                    if keyword.startswith("/") and keyword.endswith("/search"):
+                        if re.search(keyword[1:-8], paragraph.text):
+                            print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                            count += 1
+                    elif keyword.startswith("/") and keyword.endswith("/match"):
+                        if re.match(keyword[1:-6], paragraph.text):
+                            print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                            count += 1
+                    elif "&" in keyword:
+                        if all(i in paragraph.text for i in keyword.split("&")):
+                            print(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                            count += 1
+                    else:
+                        if keyword in paragraph.text:
+                            print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                            count += 1
+            print(f"在{document}这个事件记录文档中共发现{count}个关键字词\n")
+            log(f"在{document}这个事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+            log("", "info", logfile_only=True)
         else:
             print(self.do_find.__doc__)
 
     def complete_find(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
-        if re.match(r'find [\w!@#$%^&*(),.?":{}|<>/]+ in year \w*', line):
+        if re.match(r"find [^\s]+ in year \w*", line):
             return [i for i in self.years if i.startswith(text)]
-        if re.match(r'find [\w!@#$%^&*(),.?":{}|<>/]+ in month \w*', line):
+        if re.match(r"find [^\s]+ in month \w*", line):
             return [i for i in [str(i) for i in range(1, 13)] if i.startswith(text)]
-        if re.match(r'find [\w!@#$%^&*(),.?":{}|<>/]+ in ', line):
-            return [i for i in ["*", "year", "month"] if i.startswith(text)]
+        if re.match(r"find [^\s]+ in only \w*", line):
+            return [i for i in [f"{i}/{j}" for i in self.years for j in [str(i) for i in range(1, 13)]] if i.startswith(text)]
+        if re.match(r"find [^\s]+ in ", line):
+            return [i for i in ["*", "year", "month", "only"] if i.startswith(text)]
         if len(line.split(" ")) > 2:
             return ["in"]
         return []
+    
+    def do_open(self, args: str):
+        """
+        打开指定的事件记录文档。
+
+        语法：open <document> [/?]
+            document    指定的事件记录文档。
+                        事件记录文档的格式为<year>/<month>，如“2023/1”表示2023年1月的事件记录文档。
+            /?          显示此帮助文档。
+        """
+        if args.split(" ")[0] == "/?" or args == "":
+            print(self.do_open.__doc__)
+            return
+        document = args
+        docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split('/')[1]}月.docx")
+        if not os.path.exists(docments_path):
+            print(f"未找到{document}的事件记录文档")
+            log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
+            return
+        os.system(f"start {docments_path}")
+        log(f"打开了{document}的事件记录文档", "info", logfile_only=True)
+
+    def complete_open(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+        if re.match(r"open \w*", line):
+            return [i for i in [f"{i}/{j}" for i in self.years for j in [str(i) for i in range(1, 13)]] if i.startswith(text)]
 
 def help_ftf():
     for i in range(2):
@@ -226,11 +299,56 @@ class FTFAdminCmd(FTFCmd):
     def onecmd(self, line: str) -> bool:
         if line == "" or line.isspace():
             return
-        c = choice("YN", Fore.LIGHTRED_EX + "协议创始人，请牢记您的命令一旦执行便无法撤回，您确定要执行此命令吗")
+        c = choice("YN", Fore.LIGHTYELLOW_EX + "协议创始人，请牢记您的命令一旦执行便无法撤回，您确定要执行此命令吗")
         os.system("color 0c")
         if c == 2:
             return
         return super().onecmd(line)
+    
+    def do_exit(self, args: str):
+        """
+        退出《朝花夕拾协议》命令行。
+
+        语法：exit [/?]
+            无参数  退出《朝花夕拾协议》命令行。
+            /?      显示此帮助文档。
+        """
+        if args.split(" ")[0] == "/?":
+            print(self.do_exit.__doc__)
+            return
+        os.system("color 0a")
+        raise CommandLineExit()
+    
+    def do_dellog(self, args: str):
+        """
+        删除日志文件。
+
+        语法：dellog <logname/*> [/?]
+            logname     指定删除的日志文件的名称。
+            *           表示所有日志文件。
+            /?          显示此帮助文档。
+        """
+        if args.split(" ")[0] == "/?" or args == "":
+            print(self.do_dellog.__doc__)
+            return
+        logname = args
+        if logname == "*":
+            for i in glob("logs\\*.log"):
+                os.remove(i)
+                print(f"已删除{i}")
+                log(f"已删除{i}", "info", logfile_only=True)
+        else:
+            if not os.path.exists(f"logs\\{logname}.log"):
+                print(f"未找到{logname}的日志文件")
+                log(f"未找到{logname}的日志文件", "warning", logfile_only=True)
+                return
+            os.remove(f"logs\\{logname}.log")
+            print(f"已删除{logname}.log")
+            log(f"已删除{logname}.log", "info", logfile_only=True)
+
+    def complete_dellog(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+        if re.match(r"dellog \w*", line):
+            return [i.replace("logs\\", "").replace(".log", "") for i in glob("logs\\*.log") if i.replace("logs\\", "").replace(".log", "").startswith(text)]
 
 def help_ftf_admin():
     print(Fore.LIGHTRED_EX + "您已处在协议创始人权限下")
