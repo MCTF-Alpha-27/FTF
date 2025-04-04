@@ -1,12 +1,12 @@
+from psutil import process_iter
+from colorama import Fore, init
+from . import config
 import os
 import time
 import logging
 import pyttsx3
 import pyautogui
 import subprocess
-from . import config
-from psutil import process_iter
-from colorama import Fore, init
 
 logging.basicConfig(filename="logs/%s.log"%time.strftime(r"%Y-%m-%d-%H.%M.%S"), level=logging.DEBUG, format="[%(asctime)s] [%(levelname)s]: %(message)s", encoding="utf-8")
 init()
@@ -72,14 +72,12 @@ def wechat(text, executant_wrapper_object, *, with_spaces=True):
     executant_wrapper_object.type_keys("[FTF] %s"%text, with_spaces=with_spaces)
     pyautogui.hotkey("enter")
 
-def choice(choose="YN", text="Y/N", default=False, timeout="10", *, hide=False):
-    choice = "choice "
-    choice = choice + " /C "
-    for i in range(len(text)):
-        if text[i] == " ":
-            raise SyntaxError(
-                "显示的文字中不能含有空格"
-            )
+def choice(choose="YN", text="Y/N", default=None, timeout=10, *, hide=False):
+    choice = "choice /C "
+    if " " in text:
+        raise SyntaxError(
+            "显示的文字中不能含有空格"
+        )
     if hide:
         choice = choice + choose + " /N " + " /M " + text
     else:
@@ -87,8 +85,8 @@ def choice(choose="YN", text="Y/N", default=False, timeout="10", *, hide=False):
     if default:
         if default in choose:
             choice = choice + " /D " + default
-            choice = choice + " /T " + timeout
-        elif default not in choose:
+            choice = choice + " /T " + str(timeout)
+        else:
             raise SyntaxError(
                 "按键默认值不在设置的按键中"
             )

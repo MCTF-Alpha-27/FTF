@@ -4,7 +4,7 @@ from configparser import ConfigParser
 config = ConfigParser()
 if not os.path.exists("config.ini"):
     config["Logger"] = {"debug": False, "voice": True}
-    config["FTF"] = {"ftfpath": "{ftfpath}", "controller": "一只叫迷迭香的菲林"}
+    config["FTF"] = {"ftfpath": r"{ftfpath}", "controller": "一只叫迷迭香的菲林"}
     with open("config.ini", "w", encoding="gbk") as cfgfile:
         config.write(cfgfile)
 

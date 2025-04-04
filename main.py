@@ -3,7 +3,7 @@ import cv2
 from pywinauto.application import Application
 from libs import *
 
-os.system("title FTF v2.8.0")
+os.system("title FTF v2.8.1")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -17,10 +17,15 @@ while True:
         print("欢迎使用《朝花夕拾协议》终端\n按下q键以退出\n")
         print("1. 《朝花夕拾协议》是什么")
         print("2. 《朝花夕拾协议》试题")
-        print("3. 启动《朝花夕拾协议》命令行")
-        print("4. 启动《朝花夕拾协议》监听终端")
+        print("3. 《朝花夕拾协议》试题答案")
+        print("4. 《朝花夕拾协议通用掩盖指南》")
+        print("5. 《朝花夕拾协议消极情绪应对指南》")
+        print("6. 《朝花夕拾协议》主题曲《记忆的树林》")
+        print("7. 《朝花夕拾协议》印象曲《寻忆》")
+        print("8. 启动《朝花夕拾协议》命令行")
+        print("9. 启动《朝花夕拾协议》监听终端")
 
-        if config.ftfpath.startswith("{") and config.ftfpath.endswith("}"):
+        if config.ftfpath == r"{ftfpath}":
             log("未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath", "warning")
             raise UserWarning(
                 "未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath"
@@ -31,18 +36,31 @@ while True:
                 "《朝花夕拾协议》根目录无效，请确认路径是否正确，然后前往config.ini中修改ftfpath"
             )
 
-        result = choice("1234q", "请选择你要使用的功能:", hide=True)
+        result = choice("123456789q", "请选择你要使用的功能:", hide=True)
         if result == 1:
-            log("正在打开《朝花夕拾协议》", "info")
-            os.system(
-                f"start {config.ftfpath}/朝花夕拾协议.docx")
+            log("正在打开《朝花夕拾协议》", "info", logfile_only=True)
+            os.startfile(f"{config.ftfpath}/朝花夕拾协议.docx")
         elif result == 2:
-            log("正在打开《朝花夕拾协议》试题", "info")
-            os.system(
-                f"start {config.ftfpath}/《朝花夕拾协议》熟悉程度统一考试.docx")
+            log("正在打开《朝花夕拾协议》试题", "info", logfile_only=True)
+            os.startfile(f"{config.ftfpath}/《朝花夕拾协议》熟悉程度统一考试.docx")
         elif result == 3:
+            log("正在打开《朝花夕拾协议》试题答案", "info", logfile_only=True)
+            os.startfile(f"{config.ftfpath}/《朝花夕拾协议》熟悉程度统一考试（答案）.docx")
+        elif result == 4:
+            log("正在打开《朝花夕拾协议通用掩盖指南》", "info", logfile_only=True)
+            os.startfile(f"{config.ftfpath}/朝花夕拾协议通用掩盖指南.docx")
+        elif result == 5:
+            log("正在打开《朝花夕拾协议消极情绪应对指南》", "info", logfile_only=True)
+            os.startfile(f"{config.ftfpath}/朝花夕拾协议消极情绪应对指南.docx")
+        elif result == 6:
+            log("正在打开《朝花夕拾协议》主题曲《记忆的树林》", "info", logfile_only=True)
+            os.startfile(f"{config.ftfpath}/《朝花夕拾协议》主题曲《记忆的树林》.docx")
+        elif result == 7:
+            log("正在打开《朝花夕拾协议》印象曲《寻忆》", "info", logfile_only=True)
+            os.startfile(f"{config.ftfpath}/《朝花夕拾协议》印象曲《寻忆》.docx")
+        elif result == 8:
             try:
-                log("《朝花夕拾协议》命令行启动", "info")
+                log("《朝花夕拾协议》命令行启动", "info", logfile_only=True)
                 FTF_cmd.cmdloop()
             except CommandLineExit:
                 continue
@@ -51,9 +69,9 @@ while True:
                     FTF_ADMIN_cmd.cmdloop()
                 except CommandLineExit:
                     continue
-        elif result == 4:
+        elif result == 9:
             break
-        elif result == 5:
+        else:
             sys.exit(0)
 
     os.system("cls")
