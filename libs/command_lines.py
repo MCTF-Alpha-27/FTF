@@ -1,6 +1,3 @@
-import os
-import re
-import importlib
 from cmd import Cmd
 from glob import glob
 from typing import IO
@@ -11,6 +8,9 @@ from collections import OrderedDict
 from .exceptions import *
 from .functions import log, choice
 from .config import ftfpath
+import os
+import re
+import importlib
 
 init()
 

@@ -51,6 +51,12 @@ def log(text, level="normal", *, logfile_only=False):
                 time.strftime(r"%Y-%m-%d %H:%M:%S"), "ERROR", text))
         logging.error(text)
         print(Fore.LIGHTGREEN_EX, end="")
+    elif level == "exception":
+        if not logfile_only:
+            print(Fore.LIGHTRED_EX + "[%s] [%s]: %s" % (
+                time.strftime(r"%Y-%m-%d %H:%M:%S"), "ERROR", text))
+        logging.exception(text)
+        print(Fore.LIGHTGREEN_EX, end="")
     elif level == "debug":
         if config.debug:
             if not logfile_only:

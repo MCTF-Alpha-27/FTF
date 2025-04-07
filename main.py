@@ -1,9 +1,9 @@
-import sys
-import cv2
 from pywinauto.application import Application
 from libs import *
+import sys
+import cv2
 
-os.system("title FTF v2.8.1")
+os.system("title FTF v2.8.2")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -229,9 +229,9 @@ while True:
         if type(e) is TransferTerminalControl:
             log(str(e), "info")
         else:
-            log("监听中发生错误，我们获取了以下信息", "warning")
-            say_in_english("an error was caught")
             log(str(e), "error")
+            log("监听中发生错误，详细信息已被写入日志", "exception")
+            say_in_english("an error was caught")
             print(Fore.BLUE)
         is_continue = False
         while True:
