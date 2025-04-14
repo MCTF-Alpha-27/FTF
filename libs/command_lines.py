@@ -102,9 +102,9 @@ class FTFCmd(Cmd):
                         line += 1
                         for keyword in keywords:
                             if keyword.startswith("/") and keyword.endswith("/search"):
-                                if re.search(keyword[1:-8], paragraph.text):
+                                if re.search(keyword[1:-7], paragraph.text):
                                     print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                                     count += 1
                             elif keyword.startswith("/") and keyword.endswith("/match"):
                                 if re.match(keyword[1:-6], paragraph.text):
@@ -141,9 +141,9 @@ class FTFCmd(Cmd):
                         line += 1
                         for keyword in keywords:
                             if keyword.startswith("/") and keyword.endswith("/search"):
-                                if re.search(keyword[1:-8], paragraph.text):
+                                if re.search(keyword[1:-7], paragraph.text):
                                     print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                                     count += 1
                             elif keyword.startswith("/") and keyword.endswith("/match"):
                                 if re.match(keyword[1:-6], paragraph.text):
@@ -184,9 +184,9 @@ class FTFCmd(Cmd):
                         line += 1
                         for keyword in keywords:
                             if keyword.startswith("/") and keyword.endswith("/search"):
-                                if re.search(keyword[1:-8], paragraph.text):
+                                if re.search(keyword[1:-7], paragraph.text):
                                     print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                                     count += 1
                             elif keyword.startswith("/") and keyword.endswith("/match"):
                                 if re.match(keyword[1:-6], paragraph.text):
@@ -220,9 +220,9 @@ class FTFCmd(Cmd):
                 line += 1
                 for keyword in keywords:
                     if keyword.startswith("/") and keyword.endswith("/search"):
-                        if re.search(keyword[1:-8], paragraph.text):
+                        if re.search(keyword[1:-7], paragraph.text):
                             print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                             count += 1
                     elif keyword.startswith("/") and keyword.endswith("/match"):
                         if re.match(keyword[1:-6], paragraph.text):
