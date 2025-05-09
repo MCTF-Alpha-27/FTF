@@ -52,6 +52,8 @@ class FTFCmd(Cmd):
                 raise e
             print(f"{Fore.LIGHTRED_EX}{e.__class__.__name__}: {str(e)}")
             log(f"{e.__class__.__name__}: {str(e)}", "error", logfile_only=True)
+            print(f"{Fore.LIGHTRED_EX}运行时发生错误，详细信息已被写入日志")
+            log("运行时发生错误，详细信息已被写入日志", "exception", logfile_only=True)
             return False
         return callback
 
@@ -282,6 +284,119 @@ class FTFCmd(Cmd):
     def complete_open(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
         if re.match(r"open \w*", line):
             return [i for i in [f"{i}/{j}" for i in self.years for j in [str(i) for i in range(1, 13)]] if i.startswith(text)]
+
+    def do_count(self, args: str):
+        """
+        统计年度总结中的新事物（或重大事件）以及“时期”的数量。
+
+        语法：count [N&M | normal_period | combined_period] in <year> [/?]
+            N&M                 统计新事物（或重大事件）的数量。
+            normal_period       统计常规“时期”的数量。
+            combined_period     统计合称“时期”的数量。
+            year                年度总结所属的年份。
+            /?                  显示此帮助文档。
+        """
+        if args.split(" ")[0] == "/?" or args == "":
+            print(self.do_count.__doc__)
+            return
+        if args.split(" ")[0] == "N&M":
+            year = args.split(" ")[2]
+            docments_path = os.path.join(ftfpath, year, "年度总结.docx")
+            if not os.path.exists(docments_path):
+                print(f"未找到{year}年的年度总结")
+                log(f"未找到{year}年的年度总结", "warning", logfile_only=True)
+                return
+            doc = Document(docments_path)
+            total_count = 0
+            month_count = 0
+            month_info = {}
+            start_count = False
+            for paragraph in doc.paragraphs:
+                if start_count:
+                    if paragraph.text == "":
+                        break
+                    if not paragraph.text[0].isdigit() and not paragraph.text.endswith("："):
+                        total_count += 1
+                        month_count += 1
+                        month_info[month] = month_count
+                    else:
+                        month_count = 0
+                        month = int(re.search(r"(\d+)月", paragraph.text).group(1))
+                if not start_count and "新事物（或重大事件）" in paragraph.text:
+                    start_count = True
+            print(f"在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）")
+            log(f"在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）", "info", logfile_only=True)
+            for k, v in month_info.items():
+                print(f"{str(k)}月: {v}个")
+                log(f"{str(k)}月: {v}个", "info", logfile_only=True)
+            print()
+            log("", "info", logfile_only=True)
+        elif args.split(" ")[0] == "normal_period":
+            year = args.split(" ")[2]
+            docments_path = os.path.join(ftfpath, year, "年度总结.docx")
+            if not os.path.exists(docments_path):
+                print(f"未找到{year}年的年度总结")
+                log(f"未找到{year}年的年度总结", "warning", logfile_only=True)
+                return
+            doc = Document(docments_path)
+            total_count = 0
+            month_count = 0
+            month_info = {}
+            start_count = False
+            for paragraph in doc.paragraphs:
+                if start_count:
+                    if paragraph.text == "":
+                        break
+                    if not paragraph.text[0].isdigit() and not paragraph.text.endswith("："):
+                        total_count += 1
+                        month_count += 1
+                        month_info[month] = month_count
+                    else:
+                        month_count = 0
+                        month = int(re.search(r"(\d+)月", paragraph.text).group(1))
+                if not start_count and "常规“时期”" in paragraph.text:
+                    start_count = True
+            print(f"在{year}年的年度总结中共发现{total_count}个常规“时期”")
+            log(f"在{year}年的年度总结中共发现{total_count}个常规“时期”", "info", logfile_only=True)
+            for k, v in month_info.items():
+                print(f"{str(k)}月: {v}个")
+                log(f"{str(k)}月: {v}个", "info", logfile_only=True)
+            print()
+            log("", "info", logfile_only=True)
+        elif args.split(" ")[0] == "combined_period":
+            year = args.split(" ")[2]
+            docments_path = os.path.join(ftfpath, year, "年度总结.docx")
+            if not os.path.exists(docments_path):
+                print(f"未找到{year}年的年度总结")
+                log(f"未找到{year}年的年度总结", "warning", logfile_only=True)
+                return
+            doc = Document(docments_path)
+            total_count = 0
+            month_info = []
+            start_count = False
+            for paragraph in doc.paragraphs:
+                if start_count:
+                    if paragraph.text == "":
+                        break
+                    total_count += 1
+                    month_info.append(re.search(r"\d+~\d+月", paragraph.text).group(0))
+                if not start_count and "合称“时期”" in paragraph.text:
+                    start_count = True
+            print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}")
+            log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}", "info", logfile_only=True)
+            print()
+            log("", "info", logfile_only=True)
+        else:
+            print(self.do_count.__doc__)
+
+    def complete_count(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+        if re.match(r"count (N&M|normal_period|combined_period) in \w*", line):
+            return [i for i in self.years if i.startswith(text)]
+        if len(line.split(" ")) > 2:
+            return ["in"]
+        if line.startswith("count "):
+            return [i for i in ["N&M", "normal_period", "combined_period"] if i.startswith(text)]
+        return []
 
 def help_ftf():
     for i in range(2):
