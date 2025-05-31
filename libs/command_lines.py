@@ -310,6 +310,9 @@ class FTFCmd(Cmd):
             total_count = 0
             month_count = 0
             month_info = {}
+            actual_records = 0
+            actual_records_month = {}
+            wrong_records_count = 0
             start_count = False
             for paragraph in doc.paragraphs:
                 if start_count:
@@ -322,13 +325,29 @@ class FTFCmd(Cmd):
                     else:
                         month_count = 0
                         month = int(re.search(r"(\d+)月", paragraph.text).group(1))
+                        actual_records_month[month] = int(re.search(r"共(\d+)个", paragraph.text).group(1)) if re.search(r"共(\d+)个", paragraph.text) else None
                 if not start_count and "新事物（或重大事件）" in paragraph.text:
                     start_count = True
+                    actual_records = int(re.search(r"(\d+)个新事物（或重大事件）", paragraph.text).group(1)) if re.search(r"(\d+)个新事物（或重大事件）", paragraph.text) else None
             print(f"在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）")
             log(f"在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）", "info", logfile_only=True)
             for k, v in month_info.items():
-                print(f"{str(k)}月: {v}个")
-                log(f"{str(k)}月: {v}个", "info", logfile_only=True)
+                if v == actual_records_month[k]:
+                    print(f"{str(k)}月: {v}个")
+                    log(f"{str(k)}月: {v}个", "info", logfile_only=True)
+                else:
+                    print(f"{str(k)}月: {v}个（年度总结中记录为{actual_records_month[k]}个，请更正）")
+                    log(f"{str(k)}月: {v}个（年度总结中记录为{actual_records_month[k]}个，请更正）", "info", logfile_only=True)
+                    wrong_records_count += 1
+            if total_count == actual_records:
+                print(f"在年度总结中共发现{total_count}个新事物（或重大事件），与实际记录一致")
+                log(f"在年度总结中共发现{total_count}个新事物（或重大事件），与实际记录一致", "info", logfile_only=True)
+            else:
+                print(f"在年度总结中共发现{total_count}个新事物（或重大事件），但年度总结中记录为{actual_records}个，请更正")
+                log(f"在年度总结中共发现{total_count}个新事物（或重大事件），但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
+                wrong_records_count += 1
+            print(f"对{year}年新事物（或重大事件）的统计与检查已完成，共发现{wrong_records_count}项记录错误")
+            log(f"对{year}年新事物（或重大事件）的统计与检查已完成，共发现{wrong_records_count}项记录错误", "info", logfile_only=True)
             print()
             log("", "info", logfile_only=True)
         elif args.split(" ")[0] == "normal_period":
@@ -342,6 +361,8 @@ class FTFCmd(Cmd):
             total_count = 0
             month_count = 0
             month_info = {}
+            actual_records = 0
+            wrong_records_count = 0
             start_count = False
             for paragraph in doc.paragraphs:
                 if start_count:
@@ -356,11 +377,21 @@ class FTFCmd(Cmd):
                         month = int(re.search(r"(\d+)月", paragraph.text).group(1))
                 if not start_count and "常规“时期”" in paragraph.text:
                     start_count = True
+                    actual_records = int(re.search(r"(\d+)个常规“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个常规“时期”", paragraph.text) else None
             print(f"在{year}年的年度总结中共发现{total_count}个常规“时期”")
             log(f"在{year}年的年度总结中共发现{total_count}个常规“时期”", "info", logfile_only=True)
             for k, v in month_info.items():
                 print(f"{str(k)}月: {v}个")
                 log(f"{str(k)}月: {v}个", "info", logfile_only=True)
+            if total_count == actual_records:
+                print(f"在年度总结中共发现{total_count}个常规“时期”，与实际记录一致")
+                log(f"在年度总结中共发现{total_count}个常规“时期”，与实际记录一致", "info", logfile_only=True)
+            else:
+                print(f"在年度总结中共发现{total_count}个常规“时期”，但年度总结中记录为{actual_records}个，请更正")
+                log(f"在年度总结中共发现{total_count}个常规“时期”，但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
+                wrong_records_count += 1
+            print(f"对{year}年常规“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误")
+            log(f"对{year}年常规“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误", "info", logfile_only=True)
             print()
             log("", "info", logfile_only=True)
         elif args.split(" ")[0] == "combined_period":
@@ -373,6 +404,8 @@ class FTFCmd(Cmd):
             doc = Document(docments_path)
             total_count = 0
             month_info = []
+            actual_records = 0
+            wrong_records_count = 0
             start_count = False
             for paragraph in doc.paragraphs:
                 if start_count:
@@ -382,8 +415,16 @@ class FTFCmd(Cmd):
                     month_info.append(re.search(r"\d+~\d+月", paragraph.text).group(0))
                 if not start_count and "合称“时期”" in paragraph.text:
                     start_count = True
-            print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}")
-            log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}", "info", logfile_only=True)
+                    actual_records = int(re.search(r"(\d+)个合称“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个合称“时期”", paragraph.text) else None
+            if total_count == actual_records:
+                print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}")
+                log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}", "info", logfile_only=True)
+            else:
+                print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正")
+                log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
+                wrong_records_count += 1
+            print(f"对{year}年合称“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误")
+            log(f"对{year}年合称“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误", "info", logfile_only=True)
             print()
             log("", "info", logfile_only=True)
         else:
