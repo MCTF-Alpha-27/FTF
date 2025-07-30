@@ -85,7 +85,7 @@ class FTFCmd(Cmd):
             month <months>  事件记录文档所在的月份，可填多个，使用空格分隔。
             only <document> 仅在指定的事件记录文档中查找关键字词。
                             指定的事件记录文档格式为<year>/<month>，如“2023/1”表示2023年1月的事件记录文档。
-            *               在所有文档中查找关键字词。
+            *               在所有文档中查找关键字词，包括年度总结。
             /?              显示此帮助文档。
         """
         if args.split(" ")[0] == "/?" or args == "":
@@ -211,7 +211,7 @@ class FTFCmd(Cmd):
         elif documents[0] == "only":
             count = 0
             document = documents[1]
-            docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split('/')[1]}月.docx")
+            docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split("/")[1]}月.docx")
             if not os.path.exists(docments_path):
                 print(f"未找到{document}的事件记录文档")
                 log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
@@ -262,28 +262,51 @@ class FTFCmd(Cmd):
     
     def do_open(self, args: str):
         """
-        打开指定的事件记录文档。
+        打开指定的文档。
 
         语法：open <document> [/?]
-            document    指定的事件记录文档。
-                        事件记录文档的格式为<year>/<month>，如“2023/1”表示2023年1月的事件记录文档。
+            document    指定的文档。
+                        若文档格式为<year>/<month>，则表示打开事件记录文档，如“2023/1”表示2023年1月的事件记录文档。
+                        若文档格式为<year>/annual_summary，则表示打开年度总结，如2023/annual_summary表示2023年的年度总结。
             /?          显示此帮助文档。
         """
         if args.split(" ")[0] == "/?" or args == "":
             print(self.do_open.__doc__)
             return
         document = args
-        docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split('/')[1]}月.docx")
+        if document.split("/")[1] == "annual_summary":
+            docments_path = os.path.join(ftfpath, document.split("/")[0], "年度总结.docx")
+        else:
+            docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split("/")[1]}月.docx")
         if not os.path.exists(docments_path):
-            print(f"未找到{document}的事件记录文档")
-            log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
+            if document.split("/")[1] == "annual_summary":
+                print(f"未找到{document.split("/")[0]}年的年度总结")
+                log(f"未找到{document.split("/")[0]}年的年度总结", "warning", logfile_only=True)
+            else:
+                print(f"未找到{document}的事件记录文档")
+                log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
             return
         os.system(f"start {docments_path}")
-        log(f"打开了{document}的事件记录文档", "info", logfile_only=True)
+        if document.split("/")[1] == "annual_summary":
+            log(f"打开了{document.split("/")[0]}年的年度总结", "info", logfile_only=True)
+        else:
+            log(f"打开了{document}的事件记录文档", "info", logfile_only=True)
 
     def complete_open(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
-        if re.match(r"open \w*", line):
-            return [i for i in [f"{i}/{j}" for i in self.years for j in [str(i) for i in range(1, 13)]] if i.startswith(text)]
+        parts = text.split("/")
+        year_part = parts[0] if len(parts) > 0 else ""
+        month_part = parts[1] if len(parts) > 1 else ""
+        if "/" not in text:
+            return [f"{i}/" for i in self.years if i.startswith(year_part)]
+        if month_part == "":
+            months = [f"{year_part}/{i}" for i in [str(i) for i in range(1, 13)]]
+            annual = [f"{year_part}/annual_summary"]
+            return months + annual
+        else:
+            if month_part.startswith("a"):
+                return [f"{year_part}/annual_summary"] if "annual_summary".startswith(month_part) else []
+            else:
+                return [f"{year_part}/{i}" for i in [str(i) for i in range(1, 13)] if i.startswith(month_part)]
 
     def do_count(self, args: str):
         """
@@ -417,8 +440,8 @@ class FTFCmd(Cmd):
                     start_count = True
                     actual_records = int(re.search(r"(\d+)个合称“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个合称“时期”", paragraph.text) else None
             if total_count == actual_records:
-                print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}")
-                log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}", "info", logfile_only=True)
+                print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {", ".join([i for i in month_info])}")
+                log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {", ".join([i for i in month_info])}", "info", logfile_only=True)
             else:
                 print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正")
                 log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
