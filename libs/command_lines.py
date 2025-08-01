@@ -72,19 +72,20 @@ class FTFCmd(Cmd):
     
     def do_find(self, args: str):
         """
-        查找事件记录文档中的关键字词。
+        查找文档中的关键字词。
 
         语法：find <keywords>/<regex> in [year <years> | month <months> | only <document> | *] [/?]
-            keywords        事件记录文档中的关键字词。
+            keywords        指定查找的关键字词。
                             使用空格分隔多个关键字词，表示查找包含多个关键字词的项。
                             使用“&”符号连接多个关键字词，表示查找的项中必须同时包含这些关键字词。
             regex           正则表达式。以“/”符号开头并以“/search”或“/match”结尾的字符串将被视为正则表达式。
-                            正则表达式以“/search”结尾表示从整个字符串中搜索匹配项；
+                            正则表达式以“/search”结尾表示从整个字符串中搜索匹配项。
                             正则表达式以“/match”结尾表示从字符串开头匹配。
-            year <years>    事件记录文档所在的年份，可填多个，使用空格分隔。
-            month <months>  事件记录文档所在的月份，可填多个，使用空格分隔。
-            only <document> 仅在指定的事件记录文档中查找关键字词。
-                            指定的事件记录文档格式为<year>/<month>，如“2023/1”表示2023年1月的事件记录文档。
+            year <years>    文档所属的年份，可填多个，使用空格分隔。
+            month <months>  文档所属的月份，可填多个，使用空格分隔。
+            only <document> 仅在指定的文档中查找关键字词。
+                            若指定的文档格式为<year>/<month>，则表示在事件记录文档中查找，如“2023/1”表示2023年1月的事件记录文档。
+                            若指定的文档格式为<year>/annual_summary，则表示在年度总结中查找，如2023/annual_summary表示2023年的年度总结。
             *               在所有文档中查找关键字词，包括年度总结。
             /?              显示此帮助文档。
         """
@@ -211,10 +212,17 @@ class FTFCmd(Cmd):
         elif documents[0] == "only":
             count = 0
             document = documents[1]
-            docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split("/")[1]}月.docx")
+            if document.split("/")[1] == "annual_summary":
+                docments_path = os.path.join(ftfpath, document.split("/")[0], "年度总结.docx")
+            else:
+                docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split("/")[1]}月.docx")
             if not os.path.exists(docments_path):
-                print(f"未找到{document}的事件记录文档")
-                log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
+                if document.split("/")[1] == "annual_summary":
+                    print(f"未找到{document.split('/')[0]}年的年度总结")
+                    log(f"未找到{document.split('/')[0]}年的年度总结", "warning", logfile_only=True)
+                else:
+                    print(f"未找到{document}的事件记录文档")
+                    log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
                 return
             doc = Document(docments_path)
             line = 0
@@ -241,8 +249,12 @@ class FTFCmd(Cmd):
                             print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
                             log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
                             count += 1
-            print(f"在{document}这个事件记录文档中共发现{count}个关键字词\n")
-            log(f"在{document}这个事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+            if document.split("/")[1] == "annual_summary":
+                print(f"在{document.split('/')[0]}年的年度总结中共发现{count}个关键字词\n")
+                log(f"在{document.split('/')[0]}年的年度总结中共发现{count}个关键字词", "info", logfile_only=True)
+            else:
+                print(f"在{document}这个事件记录文档中共发现{count}个关键字词\n")
+                log(f"在{document}这个事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
         else:
             print(self.do_find.__doc__)
@@ -253,7 +265,19 @@ class FTFCmd(Cmd):
         if re.match(r"find [^\s]+ in month \w*", line):
             return [i for i in [str(i) for i in range(1, 13)] if i.startswith(text)]
         if re.match(r"find [^\s]+ in only \w*", line):
-            return [i for i in [f"{i}/{j}" for i in self.years for j in [str(i) for i in range(1, 13)]] if i.startswith(text)]
+            parts = text.split("/")
+            year_part = parts[0] if len(parts) > 0 else ""
+            month_part = parts[1] if len(parts) > 1 else ""
+            if "/" not in text:
+                return [f"{y}/" for y in self.years if y.startswith(year_part)]
+            options = []
+            for month in range(1, 13):
+                month_str = str(month)
+                if month_str.startswith(month_part):
+                    options.append(f"{year_part}/{month_str}")
+            if "annual_summary".startswith(month_part):
+                options.append(f"{year_part}/annual_summary")
+            return options
         if re.match(r"find [^\s]+ in ", line):
             return [i for i in ["*", "year", "month", "only"] if i.startswith(text)]
         if len(line.split(" ")) > 2:
