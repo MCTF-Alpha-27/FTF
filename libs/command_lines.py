@@ -1,16 +1,19 @@
 from cmd import Cmd
 from glob import glob
 from typing import IO
-from time import sleep
 from docx import Document
+from time import sleep
 from colorama import Fore, init
 from collections import OrderedDict
 from .exceptions import *
 from .functions import log, choice
 from .config import ftfpath
+
 import os
 import re
 import importlib
+import datetime
+import math
 
 init()
 
@@ -260,11 +263,11 @@ class FTFCmd(Cmd):
             print(self.do_find.__doc__)
 
     def complete_find(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
-        if re.match(r"find [^\s]+ in year \w*", line):
+        if re.match(r"find [^.*$]+ in year \w*", line):
             return [i for i in self.years if i.startswith(text)]
-        if re.match(r"find [^\s]+ in month \w*", line):
+        if re.match(r"find [^.*$]+ in month \w*", line):
             return [i for i in [str(i) for i in range(1, 13)] if i.startswith(text)]
-        if re.match(r"find [^\s]+ in only \w*", line):
+        if re.match(r"find [^.*$]+ in only \w*", line):
             parts = text.split("/")
             year_part = parts[0] if len(parts) > 0 else ""
             month_part = parts[1] if len(parts) > 1 else ""
@@ -278,7 +281,7 @@ class FTFCmd(Cmd):
             if "annual_summary".startswith(month_part):
                 options.append(f"{year_part}/annual_summary")
             return options
-        if re.match(r"find [^\s]+ in ", line):
+        if re.match(r"find [^.*$]+ in ", line):
             return [i for i in ["*", "year", "month", "only"] if i.startswith(text)]
         if len(line.split(" ")) > 2:
             return ["in"]
@@ -485,6 +488,74 @@ class FTFCmd(Cmd):
         if line.startswith("count "):
             return [i for i in ["N&M", "normal_period", "combined_period"] if i.startswith(text)]
         return []
+    
+    def do_calculate(self, args: str):
+        """
+        计算“时期”的强度。
+
+        语法：calculate [strong <count>] [weak <count>] [scattered <coefficient>] start <time> end <time>/now [/?]
+            strong <count>              强定位物的数量。
+            weak <count>                弱定位物的数量。
+            scattered <coefficient>     若为分散性“时期”，指定的分散系数，否则默认为1。
+            start <month>               “时期”记录起算时间，格式为“年份/月份”，例如“2025/1”。
+            end <month>/now             指定结束时间，或键入“now”以选择当前时间。
+            /?                          显示此帮助文档。
+        
+        注：以上输入参数的顺序可以任意调整。
+        """
+        if args.split(" ")[0] == "/?" or args == "":
+            print(self.do_calculate.__doc__)
+            return
+        parts = args.split(" ")
+        if "start" not in parts or "end" not in parts:
+            print(self.do_calculate.__doc__)
+            return
+        start_index = parts.index("start")
+        end_index = parts.index("end")
+        if start_index > end_index:
+            print(self.do_calculate.__doc__)
+            return
+        start_time = parts[start_index + 1]
+        end_time = parts[end_index + 1]
+        strong_count = int(parts[parts.index("strong") + 1]) if "strong" in parts else 0
+        weak_count = int(parts[parts.index("weak") + 1]) if "weak" in parts else 0
+        scattered_coefficient = int(parts[parts.index("scattered") + 1]) if "scattered" in parts else 1
+        start_year, start_month = map(int, start_time.split("/"))
+        if end_time == "now":
+            now = datetime.datetime.now()
+            end_year, end_month = now.year, now.month
+            end_time = f"{end_year}/{end_month}"
+        else:
+            end_year, end_month = map(int, end_time.split("/"))
+        if (start_year > end_year) or (start_year == end_year and start_month > end_month):
+            print("结束时间必须晚于起算时间")
+            log("结束时间必须晚于起算时间", "warning", logfile_only=True)
+            return
+        interval_months = (end_year - start_year) * 12 + (end_month - start_month)
+        total_items = strong_count + weak_count
+        total_strength = strong_count * 2 + weak_count * 1
+        intensity = ((total_items * total_strength) / scattered_coefficient) * math.exp(-0.1 * interval_months)
+        print(f"从{start_time}到{end_time}，间隔{interval_months}个月")
+        print(f"强定位物数量: {strong_count}")
+        print(f"弱定位物数量: {weak_count}")
+        print(f"分散系数: {scattered_coefficient}")
+        print(f"计算得到的“时期”强度为: {intensity:.2f}夕")
+        log(f"计算得到的“时期”强度为: {intensity:.2f}夕", "info", logfile_only=True)
+
+    def complete_calculate(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+        options = ["strong", "weak", "scattered", "start", "end"]
+        parts = line.split(" ")
+        if len(parts) > 1:
+            last_part = parts[-1]
+            if last_part in options:
+                return []
+            elif "=" in last_part:
+                key = last_part.split("=")[0]
+                if key in options:
+                    return []
+            return [i for i in options if i.startswith(last_part)]
+        else:
+            return options
 
 def help_ftf():
     for i in range(2):

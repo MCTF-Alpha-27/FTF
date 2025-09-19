@@ -3,7 +3,7 @@ from libs import *
 import sys
 import cv2
 
-os.system("title FTF v2.9.3")
+os.system("title FTF v2.10")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
