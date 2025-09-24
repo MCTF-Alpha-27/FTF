@@ -375,10 +375,10 @@ class FTFCmd(Cmd):
                     else:
                         month_count = 0
                         month = int(re.search(r"(\d+)月", paragraph.text).group(1))
-                        actual_records_month[month] = int(re.search(r"共(\d+)个", paragraph.text).group(1)) if re.search(r"共(\d+)个", paragraph.text) else None
+                        actual_records_month[month] = int(re.search(r"共(\d+)个", paragraph.text).group(1)) if re.search(r"共(\d+)个", paragraph.text) else 0
                 if not start_count and "新事物（或重大事件）" in paragraph.text:
                     start_count = True
-                    actual_records = int(re.search(r"(\d+)个新事物（或重大事件）", paragraph.text).group(1)) if re.search(r"(\d+)个新事物（或重大事件）", paragraph.text) else None
+                    actual_records = int(re.search(r"(\d+)个新事物（或重大事件）", paragraph.text).group(1)) if re.search(r"(\d+)个新事物（或重大事件）", paragraph.text) else 0
             print(f"在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）")
             log(f"在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）", "info", logfile_only=True)
             for k, v in month_info.items():
@@ -409,6 +409,10 @@ class FTFCmd(Cmd):
                 return
             doc = Document(docments_path)
             total_count = 0
+            total_count_strong = 0
+            total_count_weak = 0
+            actual_total_count_strong = 0
+            actual_total_count_weak = 0
             month_count = 0
             month_info = {}
             actual_records = 0
@@ -425,11 +429,19 @@ class FTFCmd(Cmd):
                     else:
                         month_count = 0
                         month = int(re.search(r"(\d+)月", paragraph.text).group(1))
+                    if "时期（强）" in paragraph.text:
+                        total_count_strong += 1
+                    if "时期（弱）" in paragraph.text:
+                        total_count_weak += 1
                 if not start_count and "常规“时期”" in paragraph.text:
                     start_count = True
-                    actual_records = int(re.search(r"(\d+)个常规“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个常规“时期”", paragraph.text) else None
+                    actual_records = int(re.search(r"(\d+)个常规“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个常规“时期”", paragraph.text) else 0
+                    actual_total_count_strong = int(re.search(r"(\d+)个强“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个强“时期”", paragraph.text) else 0
+                    actual_total_count_weak = int(re.search(r"(\d+)个弱“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个弱“时期”", paragraph.text) else 0
             print(f"在{year}年的年度总结中共发现{total_count}个常规“时期”")
             log(f"在{year}年的年度总结中共发现{total_count}个常规“时期”", "info", logfile_only=True)
+            print(f"其中强“时期”有{total_count_strong}个，弱“时期”有{total_count_weak}个")
+            log(f"其中强“时期”有{total_count_strong}个，弱“时期”有{total_count_weak}个", "info", logfile_only=True)
             for k, v in month_info.items():
                 print(f"{str(k)}月: {v}个")
                 log(f"{str(k)}月: {v}个", "info", logfile_only=True)
@@ -439,6 +451,20 @@ class FTFCmd(Cmd):
             else:
                 print(f"在年度总结中共发现{total_count}个常规“时期”，但年度总结中记录为{actual_records}个，请更正")
                 log(f"在年度总结中共发现{total_count}个常规“时期”，但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
+                wrong_records_count += 1
+            if total_count_strong == actual_total_count_strong:
+                print(f"发现强“时期”{total_count_strong}个，与实际记录一致")
+                log(f"发现强“时期”{total_count_strong}个，与实际记录一致", "info", logfile_only=True)
+            else:
+                print(f"发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正")
+                log(f"发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正", "info", logfile_only=True)
+                wrong_records_count += 1
+            if total_count_weak == actual_total_count_weak:
+                print(f"发现弱“时期”{total_count_weak}个，与实际记录一致")
+                log(f"发现弱“时期”{total_count_weak}个，与实际记录一致", "info", logfile_only=True)
+            else:
+                print(f"发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正")
+                log(f"发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正", "info", logfile_only=True)
                 wrong_records_count += 1
             print(f"对{year}年常规“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误")
             log(f"对{year}年常规“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误", "info", logfile_only=True)
@@ -453,6 +479,10 @@ class FTFCmd(Cmd):
                 return
             doc = Document(docments_path)
             total_count = 0
+            total_count_strong = 0
+            total_count_weak = 0
+            actual_total_count_strong = 0
+            actual_total_count_weak = 0
             month_info = []
             actual_records = 0
             wrong_records_count = 0
@@ -463,15 +493,35 @@ class FTFCmd(Cmd):
                         break
                     total_count += 1
                     month_info.append(re.search(r"\d+~\d+月", paragraph.text).group(0))
+                    if re.search(r"强.*“时期”", paragraph.text):
+                        total_count_strong += 1
+                    if re.search(r"弱.*“时期”", paragraph.text):
+                        total_count_weak += 1
                 if not start_count and "合称“时期”" in paragraph.text:
                     start_count = True
-                    actual_records = int(re.search(r"(\d+)个合称“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个合称“时期”", paragraph.text) else None
+                    actual_records = int(re.search(r"(\d+)个合称“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个合称“时期”", paragraph.text) else 0
+                    actual_total_count_strong = int(re.search(r"(\d+)个强“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个强“时期”", paragraph.text) else 0
+                    actual_total_count_weak = int(re.search(r"(\d+)个弱“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个弱“时期”", paragraph.text) else 0
             if total_count == actual_records:
                 print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {", ".join([i for i in month_info])}")
                 log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {", ".join([i for i in month_info])}", "info", logfile_only=True)
             else:
                 print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正")
                 log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
+                wrong_records_count += 1
+            if total_count_strong == actual_total_count_strong:
+                print(f"发现强“时期”{total_count_strong}个，与实际记录一致")
+                log(f"发现强“时期”{total_count_strong}个，与实际记录一致", "info", logfile_only=True)
+            else:
+                print(f"发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正")
+                log(f"发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正", "info", logfile_only=True)
+                wrong_records_count += 1
+            if total_count_weak == actual_total_count_weak:
+                print(f"发现弱“时期”{total_count_weak}个，与实际记录一致")
+                log(f"发现弱“时期”{total_count_weak}个，与实际记录一致", "info", logfile_only=True)
+            else:
+                print(f"发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正")
+                log(f"发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正", "info", logfile_only=True)
                 wrong_records_count += 1
             print(f"对{year}年合称“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误")
             log(f"对{year}年合称“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误", "info", logfile_only=True)
@@ -501,7 +551,7 @@ class FTFCmd(Cmd):
             end <month>/now             指定结束时间，或键入“now”以选择当前时间。
             /?                          显示此帮助文档。
         
-        注：以上输入参数的顺序可以任意调整。
+        注：以上输入参数的顺序可以任意调整，但起算时间必须早于结束时间。
         """
         if args.split(" ")[0] == "/?" or args == "":
             print(self.do_calculate.__doc__)
@@ -549,11 +599,36 @@ class FTFCmd(Cmd):
             last_part = parts[-1]
             if last_part in options:
                 return []
-            elif "=" in last_part:
-                key = last_part.split("=")[0]
-                if key in options:
+            elif parts[-2] == "start":
+                if "/" in text:
+                    parts = text.split("/")
+                    if len(parts) == 2:
+                        year_part, month_part = parts
+                        if year_part in self.years or any(y.startswith(year_part) for y in self.years):
+                            months = [str(i) for i in range(1, 13)]
+                            completions = [f"{year_part}/{m}" for m in months if m.startswith(month_part)]
+                            return completions
                     return []
-            return [i for i in options if i.startswith(last_part)]
+                else:
+                    year_completions = [y for y in self.years if y.startswith(text)]
+                    return [f"{y}/" for y in year_completions]
+            elif parts[-2] == "end":
+                if "/" in text:
+                    parts = text.split("/")
+                    if len(parts) == 2:
+                        year_part, month_part = parts
+                        if year_part in self.years or any(y.startswith(year_part) for y in self.years):
+                            months = [str(i) for i in range(1, 13)]
+                            completions = [f"{year_part}/{m}" for m in months if m.startswith(month_part)]
+                            return completions
+                    return []
+                else:
+                    if text.startswith("n"):
+                        return ["now"]
+                    year_completions = [f"{y}/" for y in self.years if y.startswith(text)] + ["now"]
+                    return [y for y in year_completions if y.startswith(text)]
+            else:
+                return [i for i in options if i.startswith(last_part)]
         else:
             return options
 
