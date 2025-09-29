@@ -97,6 +97,8 @@ class FTFCmd(Cmd):
             return
         keywords = set(args.split(" in ")[0].split(" "))
         documents = list(OrderedDict.fromkeys(args.split(" in ")[1].split(" ")).keys())
+        print("注意：由于跨月事件的存在，以下事件所属月份仅供参考，必要时请加以核实")
+        log("注意：由于跨月事件的存在，以下事件所属月份仅供参考，必要时请加以核实", "info", logfile_only=True)
         if documents[0] == "*":
             count = 0
             for year in self.years:
@@ -596,8 +598,7 @@ class FTFCmd(Cmd):
         options = ["strong", "weak", "scattered", "start", "end"]
         parts = line.split(" ")
         if len(parts) > 1:
-            last_part = parts[-1]
-            if last_part in options:
+            if parts[-1] in options:
                 return []
             elif parts[-2] == "start":
                 if "/" in text:
@@ -628,7 +629,7 @@ class FTFCmd(Cmd):
                     year_completions = [f"{y}/" for y in self.years if y.startswith(text)] + ["now"]
                     return [y for y in year_completions if y.startswith(text)]
             else:
-                return [i for i in options if i.startswith(last_part)]
+                return [i for i in options if i.startswith(parts[-1])]
         else:
             return options
 
