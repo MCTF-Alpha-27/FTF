@@ -73,6 +73,75 @@ class FTFCmd(Cmd):
             return
         raise CommandLineExit()
     
+    def _find(self, document: str, keywords: set[str], count: int) -> int:
+        doc = Document(document)
+        line = 0
+        month_span = None
+        first_lock = False
+        for paragraph in doc.paragraphs:
+            if paragraph.text == "跨月":
+                month_span = math.inf
+                break
+        for paragraph in doc.paragraphs:
+            line += 1
+            if paragraph.text == "跨月" and not first_lock:
+                month_span = line
+                first_lock = True
+            for keyword in keywords:
+                if keyword.startswith("/") and keyword.endswith("/search"):
+                    if re.search(keyword[1:-7], paragraph.text):
+                        if month_span and keyword != "跨月":
+                            if line > month_span:
+                                print(f"{count + 1}. [↓]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
+                                log(f"{count + 1}. [↓]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                            else:
+                                print(f"{count + 1}. [↑]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
+                                log(f"{count + 1}. [↑]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                        else:
+                            print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                        count += 1
+                elif keyword.startswith("/") and keyword.endswith("/match"):
+                    if re.match(keyword[1:-6], paragraph.text):
+                        if month_span and keyword != "跨月":
+                            if line > month_span:
+                                print(f"{count + 1}. [↓]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
+                                log(f"{count + 1}. [↓]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                            else:
+                                print(f"{count + 1}. [↑]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
+                                log(f"{count + 1}. [↑]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                        else:
+                            print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                        count += 1
+                elif "&" in keyword:
+                    if all(i in paragraph.text for i in keyword.split("&")):
+                        if month_span and keyword != "跨月":
+                            if line > month_span:
+                                print(f"{count + 1}. [↓]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
+                                log(f"{count + 1}. [↓]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                            else:
+                                print(f"{count + 1}. [↑]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
+                                log(f"{count + 1}. [↑]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                        else:
+                            print(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                        count += 1
+                else:
+                    if keyword in paragraph.text:
+                        if month_span and keyword != "跨月":
+                            if line > month_span:
+                                print(f"{count + 1}. [↓]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
+                                log(f"{count + 1}. [↓]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                            else:
+                                print(f"{count + 1}. [↑]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
+                                log(f"{count + 1}. [↑]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                        else:
+                            print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                        count += 1
+        return count
+
     def do_find(self, args: str):
         """
         查找文档中的关键字词。
@@ -97,38 +166,16 @@ class FTFCmd(Cmd):
             return
         keywords = set(args.split(" in ")[0].split(" "))
         documents = list(OrderedDict.fromkeys(args.split(" in ")[1].split(" ")).keys())
-        print("注意：由于跨月事件的存在，以下事件所属月份仅供参考，必要时请加以核实")
-        log("注意：由于跨月事件的存在，以下事件所属月份仅供参考，必要时请加以核实", "info", logfile_only=True)
+        print("注意：查询涉及的文档中若存在跨月事件，可能导致查询事件所属月份不准确，请注意核实")
+        log("注意：查询涉及的文档中若存在跨月事件，可能导致查询事件所属月份不准确，请注意核实", "info", logfile_only=True)
+        print("标记：[↑]表示该项发生在跨月事件之前，[↓]表示该项发生在跨月事件之后，仅以文档中第一个跨月事件为相对位置")
+        log("标记：[↑]表示该项发生在跨月事件之前，[↓]表示该项发生在跨月事件之后，仅以文档中第一个跨月事件为相对位置", "info", logfile_only=True)
         if documents[0] == "*":
             count = 0
             for year in self.years:
                 docments_path = os.path.join(ftfpath, year)
                 for document in glob(f"{docments_path}\\*.docx"):
-                    doc = Document(document)
-                    line = 0
-                    for paragraph in doc.paragraphs:
-                        line += 1
-                        for keyword in keywords:
-                            if keyword.startswith("/") and keyword.endswith("/search"):
-                                if re.search(keyword[1:-7], paragraph.text):
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-                            elif keyword.startswith("/") and keyword.endswith("/match"):
-                                if re.match(keyword[1:-6], paragraph.text):
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-                            elif "&" in keyword:
-                                if all(i in paragraph.text for i in keyword.split("&")):
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-                            else:
-                                if keyword in paragraph.text:
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
+                    count = self._find(document, keywords, count)
             print(f"在所有文档中共发现{count}个关键字词\n")
             log(f"在所有文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
@@ -143,33 +190,9 @@ class FTFCmd(Cmd):
                     continue
                 docments_path = os.path.join(ftfpath, i)
                 for document in glob(f"{docments_path}\\*.docx"):
-                    doc = Document(document)
-                    line = 0
-                    for paragraph in doc.paragraphs:
-                        line += 1
-                        for keyword in keywords:
-                            if keyword.startswith("/") and keyword.endswith("/search"):
-                                if re.search(keyword[1:-7], paragraph.text):
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-                            elif keyword.startswith("/") and keyword.endswith("/match"):
-                                if re.match(keyword[1:-6], paragraph.text):
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-                            elif "&" in keyword:
-                                if all(i in paragraph.text for i in keyword.split("&")):
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-                            else:
-                                if keyword in paragraph.text:
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-            print(f"在{", ".join(year)}这{len(year)}年的事件记录文档中共发现{count}个关键字词\n")
-            log(f"在{", ".join(year)}这{len(year)}年的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+                    count = self._find(document, keywords, count)
+            print(f"在{', '.join(year)}这{len(year)}年的事件记录文档中共发现{count}个关键字词\n")
+            log(f"在{', '.join(year)}这{len(year)}年的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
         elif documents[0] == "month":
             month = documents[1:]
@@ -181,38 +204,14 @@ class FTFCmd(Cmd):
                     month.remove(i)
                     continue
                 for j in self.years:
-                    docments_path = document = os.path.join(ftfpath, j, f"{i}月.docx")
+                    docments_path = os.path.join(ftfpath, j, f"{i}月.docx")
                     if not os.path.exists(docments_path):
                         print(f"未找到{j}年{i}月的事件记录文档")
                         log(f"未找到{j}年{i}月的事件记录文档", "warning", logfile_only=True)
                         continue
-                    doc = Document(docments_path)
-                    line = 0
-                    for paragraph in doc.paragraphs:
-                        line += 1
-                        for keyword in keywords:
-                            if keyword.startswith("/") and keyword.endswith("/search"):
-                                if re.search(keyword[1:-7], paragraph.text):
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-                            elif keyword.startswith("/") and keyword.endswith("/match"):
-                                if re.match(keyword[1:-6], paragraph.text):
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-                            elif "&" in keyword:
-                                if all(i in paragraph.text for i in keyword.split("&")):
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-                            else:
-                                if keyword in paragraph.text:
-                                    print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                                    log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
-                                    count += 1
-            print(f"在{", ".join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词\n")
-            log(f"在{", ".join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+                    count = self._find(docments_path, keywords, count)
+            print(f"在{', '.join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词\n")
+            log(f"在{', '.join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
         elif documents[0] == "only":
             count = 0
@@ -220,7 +219,7 @@ class FTFCmd(Cmd):
             if document.split("/")[1] == "annual_summary":
                 docments_path = os.path.join(ftfpath, document.split("/")[0], "年度总结.docx")
             else:
-                docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split("/")[1]}月.docx")
+                docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split('/')[1]}月.docx")
             if not os.path.exists(docments_path):
                 if document.split("/")[1] == "annual_summary":
                     print(f"未找到{document.split('/')[0]}年的年度总结")
@@ -229,31 +228,7 @@ class FTFCmd(Cmd):
                     print(f"未找到{document}的事件记录文档")
                     log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
                 return
-            doc = Document(docments_path)
-            line = 0
-            for paragraph in doc.paragraphs:
-                line += 1
-                for keyword in keywords:
-                    if keyword.startswith("/") and keyword.endswith("/search"):
-                        if re.search(keyword[1:-7], paragraph.text):
-                            print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
-                            count += 1
-                    elif keyword.startswith("/") and keyword.endswith("/match"):
-                        if re.match(keyword[1:-6], paragraph.text):
-                            print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
-                            count += 1
-                    elif "&" in keyword:
-                        if all(i in paragraph.text for i in keyword.split("&")):
-                            print(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{",".join(keyword.split("&"))}”的项 -> {paragraph.text}", "info", logfile_only=True)
-                            count += 1
-                    else:
-                        if keyword in paragraph.text:
-                            print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
-                            count += 1
+            count = self._find(docments_path, keywords, count)
             if document.split("/")[1] == "annual_summary":
                 print(f"在{document.split('/')[0]}年的年度总结中共发现{count}个关键字词\n")
                 log(f"在{document.split('/')[0]}年的年度总结中共发现{count}个关键字词", "info", logfile_only=True)
@@ -309,15 +284,15 @@ class FTFCmd(Cmd):
             docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split("/")[1]}月.docx")
         if not os.path.exists(docments_path):
             if document.split("/")[1] == "annual_summary":
-                print(f"未找到{document.split("/")[0]}年的年度总结")
-                log(f"未找到{document.split("/")[0]}年的年度总结", "warning", logfile_only=True)
+                print(f"未找到{document.split('/')[0]}年的年度总结")
+                log(f"未找到{document.split('/')[0]}年的年度总结", "warning", logfile_only=True)
             else:
                 print(f"未找到{document}的事件记录文档")
                 log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
             return
         os.system(f"start {docments_path}")
         if document.split("/")[1] == "annual_summary":
-            log(f"打开了{document.split("/")[0]}年的年度总结", "info", logfile_only=True)
+            log(f"打开了{document.split('/')[0]}年的年度总结", "info", logfile_only=True)
         else:
             log(f"打开了{document}的事件记录文档", "info", logfile_only=True)
 
@@ -505,8 +480,8 @@ class FTFCmd(Cmd):
                     actual_total_count_strong = int(re.search(r"(\d+)个强“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个强“时期”", paragraph.text) else 0
                     actual_total_count_weak = int(re.search(r"(\d+)个弱“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个弱“时期”", paragraph.text) else 0
             if total_count == actual_records:
-                print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {", ".join([i for i in month_info])}")
-                log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {", ".join([i for i in month_info])}", "info", logfile_only=True)
+                print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}")
+                log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}", "info", logfile_only=True)
             else:
                 print(f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正")
                 log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
