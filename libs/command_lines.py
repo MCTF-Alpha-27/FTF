@@ -77,26 +77,50 @@ class FTFCmd(Cmd):
         doc = Document(document)
         line = 0
         month_span = None
-        first_lock = False
+        month_span_count = 0
+        month_span_count_for_L = 0
+        space_count = 0
+        space_count_now = 0
         for paragraph in doc.paragraphs:
             if paragraph.text == "跨月":
                 month_span = math.inf
-                break
+                month_span_count += 1
+            if paragraph.text == "":
+                space_count += 1
+            if "月度评估" in paragraph.text:
+                space_count -= 1
         for paragraph in doc.paragraphs:
             line += 1
-            if paragraph.text == "跨月" and not first_lock:
+            if paragraph.text == "跨月":
                 month_span = line
-                first_lock = True
+                month_span_count_for_L += 1
+            if paragraph.text == "" and month_span_count > 0:
+                space_count_now += 1
+                if month_span_count == 1:
+                    month_span = None
+                elif month_span_count == 2:
+                    if space_count_now == space_count:
+                        month_span = math.inf
+                    else:
+                        month_span = None
+                else:
+                    print(f"在{document}中发现两个以上的跨月事件，请检查文档")
+                    log(f"在{document}中发现两个以上的跨月事件，请检查文档", "warning", logfile_only=True)
+                    return count
             for keyword in keywords:
                 if keyword.startswith("/") and keyword.endswith("/search"):
                     if re.search(keyword[1:-7], paragraph.text):
                         if month_span and keyword != "跨月":
                             if line > month_span:
-                                print(f"{count + 1}. [↓]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                log(f"{count + 1}. [↓]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                                print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
+                                log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                             else:
-                                print(f"{count + 1}. [↑]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                log(f"{count + 1}. [↑]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                                if space_count_now < space_count:
+                                    month_span_count_for_E = 1
+                                else:
+                                    month_span_count_for_E = 2
+                                print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
+                                log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                         else:
                             print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
                             log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
@@ -105,11 +129,15 @@ class FTFCmd(Cmd):
                     if re.match(keyword[1:-6], paragraph.text):
                         if month_span and keyword != "跨月":
                             if line > month_span:
-                                print(f"{count + 1}. [↓]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                                log(f"{count + 1}. [↓]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                                print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
+                                log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
                             else:
-                                print(f"{count + 1}. [↑]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                                log(f"{count + 1}. [↑]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                                if space_count_now < space_count:
+                                    month_span_count_for_E = 1
+                                else:
+                                    month_span_count_for_E = 2
+                                print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
+                                log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
                         else:
                             print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
                             log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
@@ -118,11 +146,15 @@ class FTFCmd(Cmd):
                     if all(i in paragraph.text for i in keyword.split("&")):
                         if month_span and keyword != "跨月":
                             if line > month_span:
-                                print(f"{count + 1}. [↓]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
-                                log(f"{count + 1}. [↓]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                                print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
+                                log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
                             else:
-                                print(f"{count + 1}. [↑]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
-                                log(f"{count + 1}. [↑]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                                if space_count_now < space_count:
+                                    month_span_count_for_E = 1
+                                else:
+                                    month_span_count_for_E = 2
+                                print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
+                                log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
                         else:
                             print(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
                             log(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
@@ -131,11 +163,15 @@ class FTFCmd(Cmd):
                     if keyword in paragraph.text:
                         if month_span and keyword != "跨月":
                             if line > month_span:
-                                print(f"{count + 1}. [↓]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                                log(f"{count + 1}. [↓]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                                print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
+                                log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
                             else:
-                                print(f"{count + 1}. [↑]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                                log(f"{count + 1}. [↑]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                                if space_count_now < space_count:
+                                    month_span_count_for_E = 1
+                                else:
+                                    month_span_count_for_E = 2
+                                print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
+                                log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
                         else:
                             print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
                             log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
@@ -168,8 +204,9 @@ class FTFCmd(Cmd):
         documents = list(OrderedDict.fromkeys(args.split(" in ")[1].split(" ")).keys())
         print("注意：查询涉及的文档中若存在跨月事件，可能导致查询事件所属月份不准确，请注意核实")
         log("注意：查询涉及的文档中若存在跨月事件，可能导致查询事件所属月份不准确，请注意核实", "info", logfile_only=True)
-        print("标记：[↑]表示该项发生在跨月事件之前，[↓]表示该项发生在跨月事件之后，仅以文档中第一个跨月事件为相对位置")
-        log("标记：[↑]表示该项发生在跨月事件之前，[↓]表示该项发生在跨月事件之后，仅以文档中第一个跨月事件为相对位置", "info", logfile_only=True)
+        print("[E1/E2]表示该项发生在第一个/第二个跨月事件之前，[L1/L2]表示该项发生在第一个/第二个跨月事件之后，以文档中每个周度周期内各自的跨月事件为相对位置")
+        log("[E1/E2]表示该项发生在第一个/第二个跨月事件之前，[L1/L2]表示该项发生在第一个/第二个跨月事件之后，以文档中每个周度周期内各自的跨月事件为相对位置", "info", logfile_only=True)
+        print("文档内最多存在两个跨月事件，若存在两个以上的跨月事件，视为记录错误")
         if documents[0] == "*":
             count = 0
             for year in self.years:
