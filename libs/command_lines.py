@@ -115,10 +115,13 @@ class FTFCmd(Cmd):
                                 print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
                                 log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                             else:
-                                if space_count_now <= space_count:
+                                if space_count_now < space_count:
                                     month_span_count_for_E = 1
                                 else:
-                                    month_span_count_for_E = 2
+                                    if space_count != 0:
+                                        month_span_count_for_E = 2
+                                    else:
+                                        month_span_count_for_E = 1
                                 print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
                                 log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                         else:
@@ -132,10 +135,13 @@ class FTFCmd(Cmd):
                                 print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
                                 log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
                             else:
-                                if space_count_now <= space_count:
+                                if space_count_now < space_count:
                                     month_span_count_for_E = 1
                                 else:
-                                    month_span_count_for_E = 2
+                                    if space_count != 0:
+                                        month_span_count_for_E = 2
+                                    else:
+                                        month_span_count_for_E = 1
                                 print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
                                 log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
                         else:
@@ -149,10 +155,13 @@ class FTFCmd(Cmd):
                                 print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
                                 log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
                             else:
-                                if space_count_now <= space_count:
+                                if space_count_now < space_count:
                                     month_span_count_for_E = 1
                                 else:
-                                    month_span_count_for_E = 2
+                                    if space_count != 0:
+                                        month_span_count_for_E = 2
+                                    else:
+                                        month_span_count_for_E = 1
                                 print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
                                 log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
                         else:
@@ -166,10 +175,13 @@ class FTFCmd(Cmd):
                                 print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
                                 log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
                             else:
-                                if space_count_now <= space_count:
+                                if space_count_now < space_count:
                                     month_span_count_for_E = 1
                                 else:
-                                    month_span_count_for_E = 2
+                                    if space_count != 0:
+                                        month_span_count_for_E = 2
+                                    else:
+                                        month_span_count_for_E = 1
                                 print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
                                 log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
                         else:
