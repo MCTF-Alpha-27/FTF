@@ -76,114 +76,104 @@ class FTFCmd(Cmd):
     def _find(self, document: str, keywords: set[str], count: int) -> int:
         doc = Document(document)
         line = 0
-        month_span = None
-        month_span_count = 0
-        month_span_count_for_L = 0
-        space_count = 0
-        space_count_now = 0
-        for paragraph in doc.paragraphs:
-            if paragraph.text == "跨月":
-                month_span = math.inf
-                month_span_count += 1
-            if paragraph.text == "":
-                space_count += 1
-            if "月度评估" in paragraph.text:
-                space_count -= 1
+        first_month_span = None
+        second_month_span = None
+        half_length = len(doc.paragraphs) // 2
         for paragraph in doc.paragraphs:
             line += 1
-            if paragraph.text == "跨月":
-                month_span = line
-                month_span_count_for_L += 1
-            if paragraph.text == "" and month_span_count > 0:
-                space_count_now += 1
-                if month_span_count == 1:
-                    month_span = None
-                elif month_span_count == 2:
-                    if space_count_now == space_count:
-                        month_span = math.inf
-                    else:
-                        month_span = None
+            if paragraph.text == "跨月" or paragraph.text == "跨年":
+                if not first_month_span:
+                    first_month_span = line
+                elif not second_month_span:
+                    second_month_span = line
                 else:
-                    print(f"在{document}中发现两个以上的跨月事件，请检查文档")
-                    log(f"在{document}中发现两个以上的跨月事件，请检查文档", "warning", logfile_only=True)
+                    print(f"在{document}中发现两个以上的跨月或跨年事件，请检查文档")
+                    log(f"在{document}中发现两个以上的跨月或跨年事件，请检查文档", "warning", logfile_only=True)
                     return count
+        line = 0
+        for paragraph in doc.paragraphs:
+            line += 1
             for keyword in keywords:
                 if keyword.startswith("/") and keyword.endswith("/search"):
                     if re.search(keyword[1:-7], paragraph.text):
-                        if month_span and keyword != "跨月":
-                            if line > month_span:
-                                print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
-                            else:
-                                if space_count_now < space_count:
-                                    month_span_count_for_E = 1
-                                else:
-                                    if space_count != 0:
-                                        month_span_count_for_E = 2
-                                    else:
-                                        month_span_count_for_E = 1
-                                print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                                log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                        tag = None
+                        if keyword != "跨月":
+                            if first_month_span:
+                                if line < first_month_span and first_month_span < half_length:
+                                    tag = "上跨月"
+                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                elif line > first_month_span and first_month_span > half_length:
+                                    tag = "下跨月"
+                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                            if second_month_span and line > second_month_span:
+                                tag = "下跨月"
+                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                        if tag:
+                            print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
+                            log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                         else:
                             print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
                             log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                         count += 1
                 elif keyword.startswith("/") and keyword.endswith("/match"):
                     if re.match(keyword[1:-6], paragraph.text):
-                        if month_span and keyword != "跨月":
-                            if line > month_span:
-                                print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                                log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
-                            else:
-                                if space_count_now < space_count:
-                                    month_span_count_for_E = 1
-                                else:
-                                    if space_count != 0:
-                                        month_span_count_for_E = 2
-                                    else:
-                                        month_span_count_for_E = 1
-                                print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                                log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                        tag = None
+                        if keyword != "跨月":
+                            if first_month_span:
+                                if line < first_month_span and first_month_span < half_length:
+                                    tag = "上跨月"
+                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                elif line > first_month_span and first_month_span > half_length:
+                                    tag = "下跨月"
+                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                            if second_month_span and line > second_month_span:
+                                tag = "下跨月"
+                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                        if tag:
+                            print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
+                            log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
                         else:
                             print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
                             log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
                         count += 1
                 elif "&" in keyword:
                     if all(i in paragraph.text for i in keyword.split("&")):
-                        if month_span and keyword != "跨月":
-                            if line > month_span:
-                                print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
-                                log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
-                            else:
-                                if space_count_now < space_count:
-                                    month_span_count_for_E = 1
-                                else:
-                                    if space_count != 0:
-                                        month_span_count_for_E = 2
-                                    else:
-                                        month_span_count_for_E = 1
-                                print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
-                                log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                        tag = None
+                        if keyword != "跨月":
+                            if first_month_span:
+                                if line < first_month_span and first_month_span < half_length:
+                                    tag = "上跨月"
+                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                elif line > first_month_span and first_month_span > half_length:
+                                    tag = "下跨月"
+                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                            if second_month_span and line > second_month_span:
+                                tag = "下跨月"
+                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                        if tag:
+                            print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
+                            log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
                         else:
                             print(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
                             log(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
                         count += 1
                 else:
                     if keyword in paragraph.text:
-                        if month_span and keyword != "跨月":
-                            if line > month_span:
-                                print(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                                log(f"{count + 1}. [L{month_span_count_for_L}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
-                            else:
-                                if space_count_now < space_count:
-                                    month_span_count_for_E = 1
-                                else:
-                                    if space_count != 0:
-                                        month_span_count_for_E = 2
-                                    else:
-                                        month_span_count_for_E = 1
-                                print(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                                log(f"{count + 1}. [E{month_span_count_for_E}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                        tag = None
+                        if keyword != "跨月":
+                            if first_month_span:
+                                if line < first_month_span and first_month_span < half_length:
+                                    tag = "上跨月"
+                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                elif line > first_month_span and first_month_span > half_length:
+                                    tag = "下跨月"
+                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                            if second_month_span and line > second_month_span:
+                                tag = "下跨月"
+                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                        if tag:
+                            print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
+                            log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
                         else:
                             print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
                             log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
@@ -214,11 +204,12 @@ class FTFCmd(Cmd):
             return
         keywords = set(args.split(" in ")[0].split(" "))
         documents = list(OrderedDict.fromkeys(args.split(" in ")[1].split(" ")).keys())
-        print("注意：查询涉及的文档中若存在跨月事件，可能导致查询事件所属月份不准确，请注意核实")
-        log("注意：查询涉及的文档中若存在跨月事件，可能导致查询事件所属月份不准确，请注意核实", "info", logfile_only=True)
-        print("[E1/E2]表示该项发生在第一个/第二个跨月事件之前，[L1/L2]表示该项发生在第一个/第二个跨月事件之后，以文档中每个周度周期内各自的跨月事件为相对位置")
-        log("[E1/E2]表示该项发生在第一个/第二个跨月事件之前，[L1/L2]表示该项发生在第一个/第二个跨月事件之后，以文档中每个周度周期内各自的跨月事件为相对位置", "info", logfile_only=True)
-        print("文档内最多存在两个跨月事件，若存在两个以上的跨月事件，视为记录错误")
+        print("注意：查询涉及的文档中若存在跨月或跨年事件，可能导致查询事件所属月份不准确，请注意核实")
+        log("注意：查询涉及的文档中若存在跨月或跨年事件，可能导致查询事件所属月份不准确，请注意核实", "info", logfile_only=True)
+        print(f"{Fore.LIGHTBLUE_EX}[上跨月]{Fore.LIGHTGREEN_EX}表示该事件属于查询结果所示文档的上个月，{Fore.LIGHTYELLOW_EX}[下跨月]{Fore.LIGHTGREEN_EX}表示该事件属于查询结果所示文档的下个月")
+        log(f"[上跨月]表示该事件属于查询结果所示文档的上个月，[下跨月]表示该事件属于查询结果所示文档的下个月", "info", logfile_only=True)
+        print("文档内最多存在两个跨月或跨年事件，若存在两个以上的跨月或跨年事件，视为记录错误")
+        log("文档内最多存在两个跨月或跨年事件，若存在两个以上的跨月或跨年事件，视为记录错误", "info", logfile_only=True)
         if documents[0] == "*":
             count = 0
             for year in self.years:
