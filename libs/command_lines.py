@@ -102,12 +102,15 @@ class FTFCmd(Cmd):
                                 if line < first_month_span and first_month_span < half_length:
                                     tag = "上跨月"
                                     colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    self.has_upper_part = True
                                 elif line > first_month_span and first_month_span > half_length:
                                     tag = "下跨月"
                                     colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
                                 colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                self.has_lower_part = True
                         if tag:
                             print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
                             log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
@@ -123,12 +126,15 @@ class FTFCmd(Cmd):
                                 if line < first_month_span and first_month_span < half_length:
                                     tag = "上跨月"
                                     colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    self.has_upper_part = True
                                 elif line > first_month_span and first_month_span > half_length:
                                     tag = "下跨月"
                                     colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
                                 colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                self.has_lower_part = True
                         if tag:
                             print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
                             log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
@@ -144,12 +150,15 @@ class FTFCmd(Cmd):
                                 if line < first_month_span and first_month_span < half_length:
                                     tag = "上跨月"
                                     colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    self.has_upper_part = True
                                 elif line > first_month_span and first_month_span > half_length:
                                     tag = "下跨月"
                                     colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
                                 colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                self.has_lower_part = True
                         if tag:
                             print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
                             log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
@@ -165,12 +174,15 @@ class FTFCmd(Cmd):
                                 if line < first_month_span and first_month_span < half_length:
                                     tag = "上跨月"
                                     colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    self.has_upper_part = True
                                 elif line > first_month_span and first_month_span > half_length:
                                     tag = "下跨月"
                                     colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
                                 colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                self.has_lower_part = True
                         if tag:
                             print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
                             log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
@@ -179,6 +191,17 @@ class FTFCmd(Cmd):
                             log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
                         count += 1
         return count
+
+    def _check_month_span(self):
+        if self.has_upper_part or self.has_lower_part:
+            print("注意：查询涉及的文档中检测到跨月或跨年事件，请注意核实查询结果的事件所属月份")
+            log("注意：查询涉及的文档中检测到跨月或跨年事件，请注意核实查询结果的事件所属月份", "info", logfile_only=True)
+            if self.has_upper_part:
+                print(f"{Fore.LIGHTBLUE_EX}[上跨月]{Fore.LIGHTGREEN_EX}表示该事件属于查询结果所示文档的上个月")
+                log("[上跨月]表示该事件属于查询结果所示文档的上个月", "info", logfile_only=True)
+            if self.has_lower_part:
+                print(f"{Fore.LIGHTYELLOW_EX}[下跨月]{Fore.LIGHTGREEN_EX}表示该事件属于查询结果所示文档的下个月")
+                log("[下跨月]表示该事件属于查询结果所示文档的下个月", "info", logfile_only=True)
 
     def do_find(self, args: str):
         """
@@ -202,20 +225,17 @@ class FTFCmd(Cmd):
         if args.split(" ")[0] == "/?" or args == "":
             print(self.do_find.__doc__)
             return
+        self.has_upper_part = False
+        self.has_lower_part = False
         keywords = set(args.split(" in ")[0].split(" "))
         documents = list(OrderedDict.fromkeys(args.split(" in ")[1].split(" ")).keys())
-        print("注意：查询涉及的文档中若存在跨月或跨年事件，可能导致查询事件所属月份不准确，请注意核实")
-        log("注意：查询涉及的文档中若存在跨月或跨年事件，可能导致查询事件所属月份不准确，请注意核实", "info", logfile_only=True)
-        print(f"{Fore.LIGHTBLUE_EX}[上跨月]{Fore.LIGHTGREEN_EX}表示该事件属于查询结果所示文档的上个月，{Fore.LIGHTYELLOW_EX}[下跨月]{Fore.LIGHTGREEN_EX}表示该事件属于查询结果所示文档的下个月")
-        log(f"[上跨月]表示该事件属于查询结果所示文档的上个月，[下跨月]表示该事件属于查询结果所示文档的下个月", "info", logfile_only=True)
-        print("文档内最多存在两个跨月或跨年事件，若存在两个以上的跨月或跨年事件，视为记录错误")
-        log("文档内最多存在两个跨月或跨年事件，若存在两个以上的跨月或跨年事件，视为记录错误", "info", logfile_only=True)
         if documents[0] == "*":
             count = 0
             for year in self.years:
                 docments_path = os.path.join(ftfpath, year)
                 for document in glob(f"{docments_path}\\*.docx"):
                     count = self._find(document, keywords, count)
+            self._check_month_span()
             print(f"在所有文档中共发现{count}个关键字词\n")
             log(f"在所有文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
@@ -231,6 +251,7 @@ class FTFCmd(Cmd):
                 docments_path = os.path.join(ftfpath, i)
                 for document in glob(f"{docments_path}\\*.docx"):
                     count = self._find(document, keywords, count)
+            self._check_month_span()
             print(f"在{', '.join(year)}这{len(year)}年的事件记录文档中共发现{count}个关键字词\n")
             log(f"在{', '.join(year)}这{len(year)}年的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
@@ -250,6 +271,7 @@ class FTFCmd(Cmd):
                         log(f"未找到{j}年{i}月的事件记录文档", "warning", logfile_only=True)
                         continue
                     count = self._find(docments_path, keywords, count)
+            self._check_month_span()
             print(f"在{', '.join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词\n")
             log(f"在{', '.join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
@@ -269,6 +291,7 @@ class FTFCmd(Cmd):
                     log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
                 return
             count = self._find(docments_path, keywords, count)
+            self._check_month_span()
             if document.split("/")[1] == "annual_summary":
                 print(f"在{document.split('/')[0]}年的年度总结中共发现{count}个关键字词\n")
                 log(f"在{document.split('/')[0]}年的年度总结中共发现{count}个关键字词", "info", logfile_only=True)
