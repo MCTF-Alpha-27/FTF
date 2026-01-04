@@ -3,7 +3,7 @@ from libs import *
 import sys
 import cv2
 
-os.system("title FTF v2.10.8")
+os.system("title FTF v2.10.9")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -66,6 +66,7 @@ while True:
                 continue
             except AdminMode:
                 try:
+                    FTF_ADMIN_cmd.intro = Fore.LIGHTRED_EX + f"欢迎您，协议创始人\n{FTF_cmd.cipher}\n"
                     FTF_ADMIN_cmd.cmdloop()
                 except CommandLineExit:
                     continue

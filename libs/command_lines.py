@@ -14,6 +14,8 @@ import re
 import importlib
 import datetime
 import math
+import getpass
+import bcrypt
 
 init()
 
@@ -34,6 +36,7 @@ class FTFCmd(Cmd):
     def __init__(self, completekey: str = "tab", stdin: IO[str] | None = None, stdout: IO[str] | None = None) -> None:
         super().__init__(completekey, stdin, stdout)
         self.years = [i for i in os.listdir(ftfpath) if os.path.isdir(os.path.join(ftfpath, i))]
+        self.color = Fore.LIGHTGREEN_EX
 
     def emptyline(self):
         return
@@ -173,15 +176,15 @@ class FTFCmd(Cmd):
                             if first_month_span:
                                 if line < first_month_span and first_month_span < half_length:
                                     tag = "上跨月"
-                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{self.color}"
                                     self.has_upper_part = True
                                 elif line > first_month_span and first_month_span > half_length:
                                     tag = "下跨月"
-                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
                                     self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
-                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
                                 self.has_lower_part = True
                         if tag:
                             print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
@@ -197,10 +200,10 @@ class FTFCmd(Cmd):
             print("注意：查询涉及的文档中检测到跨月或跨年事件，请注意核实查询结果的事件所属月份")
             log("注意：查询涉及的文档中检测到跨月或跨年事件，请注意核实查询结果的事件所属月份", "info", logfile_only=True)
             if self.has_upper_part:
-                print(f"{Fore.LIGHTBLUE_EX}[上跨月]{Fore.LIGHTGREEN_EX}表示该事件属于查询结果所示文档的上个月")
+                print(f"{Fore.LIGHTBLUE_EX}[上跨月]{self.color}表示该事件属于查询结果所示文档的上个月")
                 log("[上跨月]表示该事件属于查询结果所示文档的上个月", "info", logfile_only=True)
             if self.has_lower_part:
-                print(f"{Fore.LIGHTYELLOW_EX}[下跨月]{Fore.LIGHTGREEN_EX}表示该事件属于查询结果所示文档的下个月")
+                print(f"{Fore.LIGHTYELLOW_EX}[下跨月]{self.color}表示该事件属于查询结果所示文档的下个月")
                 log("[下跨月]表示该事件属于查询结果所示文档的下个月", "info", logfile_only=True)
 
     def do_find(self, args: str):
@@ -672,6 +675,9 @@ class FTFCmd(Cmd):
             return options
 
 def help_ftf():
+    FTFCmd.cipher = getpass.getpass("《朝花夕拾协议》的宗旨是？")
+    if not bcrypt.checkpw(FTFCmd.cipher.encode(), b'$2b$12$aI7vpFUGDjIk0wKLXYSTE./UHK3TDZlH9/XMF7Jbf5dLx5pfEntUi'):
+        return
     for i in range(2):
         os.system("color 0c")
         sleep(0.1)
@@ -681,16 +687,19 @@ def help_ftf():
     raise AdminMode()
 
 class FTFAdminCmd(FTFCmd):
-    intro = Fore.LIGHTRED_EX + "欢迎您，协议创始人\n一切为了不远后的旧事重提\n"
     prompt = "[FTF ADMIN] "
+
+    def __init__(self, completekey = "tab", stdin = None, stdout = None):
+        super().__init__(completekey, stdin, stdout)
+        self.color = Fore.LIGHTRED_EX
 
     def onecmd(self, line: str) -> bool:
         if line == "" or line.isspace():
             return
         c = choice("YN", Fore.LIGHTYELLOW_EX + "协议创始人，请牢记您的命令一旦执行便无法撤回，您确定要执行此命令吗")
-        os.system("color 0c")
         if c == 2:
             return
+        os.system("color 0c")
         return super().onecmd(line)
     
     def do_exit(self, args: str):
