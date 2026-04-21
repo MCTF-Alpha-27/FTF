@@ -77,6 +77,8 @@ class FTFCmd(Cmd):
         raise CommandLineExit()
     
     def _find(self, document: str, keywords: set[str], count: int) -> int:
+        if document.split("\\")[-1].startswith("~$"):
+            return count
         doc = Document(document)
         line = 0
         first_month_span = None

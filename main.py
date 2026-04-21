@@ -3,7 +3,7 @@ from libs import *
 import sys
 import cv2
 
-os.system("title FTF v2.10.9")
+os.system("title FTF v2.10.10")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -71,7 +71,9 @@ while True:
                 except CommandLineExit:
                     continue
         elif result == 9:
-            break
+            r = input("该功能暂时被弃用。若您要临时调试，请键入debug并回车\n")
+            if r == "debug":
+                break
         else:
             sys.exit(0)
 
