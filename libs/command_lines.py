@@ -80,6 +80,7 @@ class FTFCmd(Cmd):
         if document.split("\\")[-1].startswith("~$"):
             return count
         doc = Document(document)
+        document_friendly_name = document.split("\\")[-2] + "/" + document.split("\\")[-1].removesuffix(".docx")
         line = 0
         first_month_span = None
         second_month_span = None
@@ -92,8 +93,8 @@ class FTFCmd(Cmd):
                 elif not second_month_span:
                     second_month_span = line
                 else:
-                    print(f"在{document}中发现两个以上的跨月或跨年事件，请检查文档")
-                    log(f"在{document}中发现两个以上的跨月或跨年事件，请检查文档", "warning", logfile_only=True)
+                    print(f"在{document_friendly_name}中发现两个以上的跨月或跨年事件，请检查文档")
+                    log(f"在{document_friendly_name}中发现两个以上的跨月或跨年事件，请检查文档", "warning", logfile_only=True)
                     return count
         line = 0
         for paragraph in doc.paragraphs:
@@ -117,11 +118,11 @@ class FTFCmd(Cmd):
                                 colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
                                 self.has_lower_part = True
                         if tag:
-                            print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                            log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                            print(f"{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
+                            log(f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                         else:
-                            print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                            print(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
                         count += 1
                 elif keyword.startswith("/") and keyword.endswith("/match"):
                     if re.match(keyword[1:-6], paragraph.text):
@@ -141,11 +142,11 @@ class FTFCmd(Cmd):
                                 colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
                                 self.has_lower_part = True
                         if tag:
-                            print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                            log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                            print(f"{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
+                            log(f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
                         else:
-                            print(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                            print(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
                         count += 1
                 elif "&" in keyword:
                     if all(i in paragraph.text for i in keyword.split("&")):
@@ -165,11 +166,11 @@ class FTFCmd(Cmd):
                                 colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
                                 self.has_lower_part = True
                         if tag:
-                            print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
-                            log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                            print(f"{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
+                            log(f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
                         else:
-                            print(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                            print(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
                         count += 1
                 else:
                     if keyword in paragraph.text:
@@ -189,11 +190,11 @@ class FTFCmd(Cmd):
                                 colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
                                 self.has_lower_part = True
                         if tag:
-                            print(f"{count + 1}. {colored_tag}在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                            log(f"{count + 1}. [{tag}]在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                            print(f"{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
+                            log(f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
                         else:
-                            print(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                            print(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
+                            log(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
                         count += 1
         return count
 
@@ -220,8 +221,10 @@ class FTFCmd(Cmd):
                             正则表达式以“/search”结尾表示从整个字符串中搜索匹配项。
                             正则表达式以“/match”结尾表示从字符串开头匹配。
             year <years>    文档所属的年份，可填多个，使用空格分隔。
+                            也可使用“~”表示范围，如“2023~2026”表示2023年到2026年（包含2023年和2026年）的事件记录文档。
             month <months>  文档所属的月份，可填多个，使用空格分隔。
-            only <document> 仅在指定的文档中查找关键字词。
+                            也可使用“~”表示范围，如“1~3”表示1月到3月（包含1月和3月）的事件记录文档。
+            only <document> 仅在指定的文档中查找关键字词，只能指定一个文档。
                             若指定的文档格式为<year>/<month>，则表示在事件记录文档中查找，如“2023/1”表示2023年1月的事件记录文档。
                             若指定的文档格式为<year>/annual_summary，则表示在年度总结中查找，如2023/annual_summary表示2023年的年度总结。
             *               在所有文档中查找关键字词，包括年度总结。
@@ -246,28 +249,64 @@ class FTFCmd(Cmd):
             log("", "info", logfile_only=True)
         elif documents[0] == "year":
             year = documents[1:]
-            count = 0
+            deduplicated_year = set()
             for i in year:
+                if "~" in i:
+                    start_year, end_year = i.split("~")
+                    if not start_year.isdigit() or not end_year.isdigit():
+                        print(f"无效的年份范围: {i}")
+                        log(f"无效的年份范围: {i}", "warning", logfile_only=True)
+                        year.remove(i)
+                        continue
+                    start_year, end_year = int(start_year), int(end_year)
+                    if start_year > end_year:
+                        print(f"无效的年份范围: {i}（起始年份大于结束年份）")
+                        log(f"无效的年份范围: {i}（起始年份大于结束年份）", "warning", logfile_only=True)
+                        year.remove(i)
+                        continue
+                    deduplicated_year.update(str(j) for j in range(start_year, end_year + 1))
+                else:
+                    deduplicated_year.add(i)
+            deduplicated_year = sorted(deduplicated_year)
+            count = 0
+            for i in deduplicated_year:
                 if i not in self.years:
                     print(f"未找到{i}年的事件记录文档")
                     log(f"未找到{i}年的事件记录文档", "warning", logfile_only=True)
-                    year.remove(i)
                     continue
                 docments_path = os.path.join(ftfpath, i)
                 for document in glob(f"{docments_path}\\*.docx"):
                     count = self._find(document, keywords, count)
             self._check_month_span()
-            print(f"在{', '.join(year)}这{len(year)}年的事件记录文档中共发现{count}个关键字词\n")
-            log(f"在{', '.join(year)}这{len(year)}年的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+            print(f"在{', '.join(year)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词\n")
+            log(f"在{', '.join(year)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
         elif documents[0] == "month":
             month = documents[1:]
-            count = 0
+            deduplicated_month = set()
             for i in month:
+                if "~" in i:
+                    start_month, end_month = i.split("~")
+                    if not start_month.isdigit() or not end_month.isdigit():
+                        print(f"无效的月份范围: {i}")
+                        log(f"无效的月份范围: {i}", "warning", logfile_only=True)
+                        month.remove(i)
+                        continue
+                    start_month, end_month = int(start_month), int(end_month)
+                    if start_month > end_month:
+                        print(f"无效的月份范围: {i}（起始月份大于结束月份）")
+                        log(f"无效的月份范围: {i}（起始月份大于结束月份）", "warning", logfile_only=True)
+                        month.remove(i)
+                        continue
+                    deduplicated_month.update(str(j) for j in range(start_month, end_month + 1))
+                else:
+                    deduplicated_month.add(i)
+            deduplicated_month = sorted(deduplicated_month)
+            count = 0
+            for i in deduplicated_month:
                 if i not in [str(i) for i in range(1, 13)]:
-                    print(f"未找到{i}月的事件记录文档")
-                    log(f"未找到{i}月的事件记录文档", "warning", logfile_only=True)
-                    month.remove(i)
+                    print(f"无效的月份: {i}月")
+                    log(f"无效的月份: {i}月", "warning", logfile_only=True)
                     continue
                 for j in self.years:
                     docments_path = os.path.join(ftfpath, j, f"{i}月.docx")
@@ -277,8 +316,8 @@ class FTFCmd(Cmd):
                         continue
                     count = self._find(docments_path, keywords, count)
             self._check_month_span()
-            print(f"在{', '.join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词\n")
-            log(f"在{', '.join(month)}月这{len(month)}个月的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+            print(f"在{', '.join(month)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词\n")
+            log(f"在{', '.join(month)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
         elif documents[0] == "only":
             count = 0
@@ -312,7 +351,7 @@ class FTFCmd(Cmd):
             return [i for i in self.years if i.startswith(text)]
         if re.match(r"find [^.*$]+ in month \w*", line):
             return [i for i in [str(i) for i in range(1, 13)] if i.startswith(text)]
-        if re.match(r"find [^.*$]+ in only \w*", line):
+        if re.match(r"find [^.*$]+ in only \w*", line) and len(line.split(" ")) < 6:
             parts = text.split("/")
             year_part = parts[0] if len(parts) > 0 else ""
             month_part = parts[1] if len(parts) > 1 else ""
@@ -326,9 +365,9 @@ class FTFCmd(Cmd):
             if "annual_summary".startswith(month_part):
                 options.append(f"{year_part}/annual_summary")
             return options
-        if re.match(r"find [^.*$]+ in ", line):
+        if re.match(r"find [^.*$]+ in ", line) and len(line.split(" ")) == 4:
             return [i for i in ["*", "year", "month", "only"] if i.startswith(text)]
-        if len(line.split(" ")) > 2:
+        if len(line.split(" ")) == 3:
             return ["in"]
         return []
     
@@ -733,7 +772,10 @@ class FTFAdminCmd(FTFCmd):
         logname = args
         if logname == "*":
             for i in glob("logs\\*.log"):
-                os.remove(i)
+                try:
+                    os.remove(i)
+                except PermissionError:
+                    pass
                 print(f"已删除{i}")
                 log(f"已删除{i}", "info", logfile_only=True)
         else:
@@ -741,7 +783,12 @@ class FTFAdminCmd(FTFCmd):
                 print(f"未找到{logname}的日志文件")
                 log(f"未找到{logname}的日志文件", "warning", logfile_only=True)
                 return
-            os.remove(f"logs\\{logname}.log")
+            try:
+                os.remove(f"logs\\{logname}.log")
+            except PermissionError:
+                print(f"无法删除{logname}.log，请确保文件未被占用")
+                log(f"无法删除{logname}.log，请确保文件未被占用", "warning", logfile_only=True)
+                return
             print(f"已删除{logname}.log")
             log(f"已删除{logname}.log", "info", logfile_only=True)
 

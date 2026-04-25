@@ -6,3 +6,6 @@ class CommandLineExit(Exception):
 
 class AdminMode(Exception):
     pass
+
+class ConfigError(Exception):
+    pass

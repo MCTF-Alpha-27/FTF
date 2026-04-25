@@ -3,7 +3,7 @@ from libs import *
 import sys
 import cv2
 
-os.system("title FTF v2.10.10")
+os.system("title FTF v2.10.11")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -26,38 +26,38 @@ while True:
         print("9. 启动《朝花夕拾协议》监听终端")
 
         if config.ftfpath == r"{ftfpath}":
-            log("未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath", "warning")
-            raise UserWarning(
+            log("未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath", "error")
+            raise ConfigError(
                 "未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath"
             )
         elif not os.path.exists(config.ftfpath):
-            log("《朝花夕拾协议》根目录无效，请确认路径是否正确，然后前往config.ini中修改ftfpath", "warning")
-            raise UserWarning(
+            log("《朝花夕拾协议》根目录无效，请确认路径是否正确，然后前往config.ini中修改ftfpath", "error")
+            raise ConfigError(
                 "《朝花夕拾协议》根目录无效，请确认路径是否正确，然后前往config.ini中修改ftfpath"
             )
 
         result = choice("123456789q", "请选择你要使用的功能:", hide=True)
         if result == 1:
             log("正在打开《朝花夕拾协议》", "info", logfile_only=True)
-            os.startfile(f"{config.ftfpath}/朝花夕拾协议.docx")
+            os.startfile(os.path.join(config.ftfpath, "朝花夕拾协议.docx"))
         elif result == 2:
             log("正在打开《朝花夕拾协议》试题", "info", logfile_only=True)
-            os.startfile(f"{config.ftfpath}/《朝花夕拾协议》熟悉程度统一考试.docx")
+            os.startfile(os.path.join(config.ftfpath, "《朝花夕拾协议》熟悉程度统一考试.docx"))
         elif result == 3:
             log("正在打开《朝花夕拾协议》试题答案", "info", logfile_only=True)
-            os.startfile(f"{config.ftfpath}/《朝花夕拾协议》熟悉程度统一考试（答案）.docx")
+            os.startfile(os.path.join(config.ftfpath, "《朝花夕拾协议》熟悉程度统一考试（答案）.docx"))
         elif result == 4:
             log("正在打开《朝花夕拾协议通用掩盖指南》", "info", logfile_only=True)
-            os.startfile(f"{config.ftfpath}/朝花夕拾协议通用掩盖指南.docx")
+            os.startfile(os.path.join(config.ftfpath, "朝花夕拾协议通用掩盖指南.docx"))
         elif result == 5:
             log("正在打开《朝花夕拾协议消极情绪应对指南》", "info", logfile_only=True)
-            os.startfile(f"{config.ftfpath}/朝花夕拾协议消极情绪应对指南.docx")
+            os.startfile(os.path.join(config.ftfpath, "朝花夕拾协议消极情绪应对指南.docx"))
         elif result == 6:
             log("正在打开《朝花夕拾协议》主题曲《记忆的树林》", "info", logfile_only=True)
-            os.startfile(f"{config.ftfpath}/《朝花夕拾协议》主题曲《记忆的树林》.docx")
+            os.startfile(os.path.join(config.ftfpath, "《朝花夕拾协议》主题曲《记忆的树林》.docx"))
         elif result == 7:
             log("正在打开《朝花夕拾协议》印象曲《寻忆》", "info", logfile_only=True)
-            os.startfile(f"{config.ftfpath}/《朝花夕拾协议》印象曲《寻忆》.docx")
+            os.startfile(os.path.join(config.ftfpath, "《朝花夕拾协议》印象曲《寻忆》.docx"))
         elif result == 8:
             try:
                 log("《朝花夕拾协议》命令行启动", "info", logfile_only=True)

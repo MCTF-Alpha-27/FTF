@@ -8,7 +8,7 @@ import pyttsx3
 import pyautogui
 import subprocess
 
-logging.basicConfig(filename="logs/%s.log"%time.strftime(r"%Y-%m-%d-%H.%M.%S"), level=logging.DEBUG, format="[%(asctime)s] [%(levelname)s]: %(message)s", encoding="utf-8")
+logging.basicConfig(filename=f"logs/{time.strftime(r'%Y-%m-%d-%H.%M.%S')}.log", level=logging.DEBUG, format="[%(asctime)s] [%(levelname)s]: %(message)s", encoding="utf-8")
 init()
 
 if not os.path.exists("logs"):
@@ -36,38 +36,32 @@ def log(text, level="normal", *, logfile_only=False):
         print(Fore.LIGHTGREEN_EX + text)
     elif level == "info":
         if not logfile_only:
-            print(Fore.LIGHTGREEN_EX + "[%s] [%s]: %s" % (
-                time.strftime(r"%Y-%m-%d %H:%M:%S"), "INFO", text))
+            print(Fore.LIGHTGREEN_EX + f"[{time.strftime(r'%Y-%m-%d %H:%M:%S')}] [INFO]: {text}")
         logging.info(text)
     elif level == "warning":
         if not logfile_only:
-            print(Fore.LIGHTYELLOW_EX + "[%s] [%s]: %s" % (
-                time.strftime(r"%Y-%m-%d %H:%M:%S"), "WARNING", text))
+            print(Fore.LIGHTYELLOW_EX + f"[{time.strftime(r'%Y-%m-%d %H:%M:%S')}] [WARNING]: {text}")
         logging.warning(text)
         print(Fore.LIGHTGREEN_EX, end="")
     elif level == "error":
         if not logfile_only:
-            print(Fore.LIGHTRED_EX + "[%s] [%s]: %s" % (
-                time.strftime(r"%Y-%m-%d %H:%M:%S"), "ERROR", text))
+            print(Fore.LIGHTRED_EX + f"[{time.strftime(r'%Y-%m-%d %H:%M:%S')}] [ERROR]: {text}")
         logging.error(text)
         print(Fore.LIGHTGREEN_EX, end="")
     elif level == "exception":
         if not logfile_only:
-            print(Fore.LIGHTRED_EX + "[%s] [%s]: %s" % (
-                time.strftime(r"%Y-%m-%d %H:%M:%S"), "ERROR", text))
+            print(Fore.LIGHTRED_EX + f"[{time.strftime(r'%Y-%m-%d %H:%M:%S')}] [ERROR]: {text}")
         logging.exception(text)
         print(Fore.LIGHTGREEN_EX, end="")
     elif level == "debug":
         if config.debug:
             if not logfile_only:
-                print(Fore.LIGHTBLUE_EX + "[%s] [%s]: %s" % (
-                    time.strftime(r"%Y-%m-%d %H:%M:%S"), "DEBUG", text))
+                print(Fore.LIGHTBLUE_EX + f"[{time.strftime(r'%Y-%m-%d %H:%M:%S')}] [DEBUG]: {text}")
         logging.debug(text)
         print(Fore.LIGHTGREEN_EX, end="")
     else:
         if not logfile_only:
-            print("[%s] [%s]: %s" % (
-                time.strftime(r"%Y-%m-%d %H:%M:%S"), level, text))
+            print(f"[{time.strftime(r'%Y-%m-%d %H:%M:%S')}] [{level}]: {text}")
         logging.info(text)
         print(Fore.LIGHTGREEN_EX, end="")
 
@@ -75,7 +69,7 @@ def wechat(text, executant_wrapper_object, *, with_spaces=True):
     pyautogui.hotkey("ctrl", "alt", "w")
     executant_wrapper_object.click_input()
     time.sleep(0.1)
-    executant_wrapper_object.type_keys("[FTF] %s"%text, with_spaces=with_spaces)
+    executant_wrapper_object.type_keys(f"[FTF] {text}", with_spaces=with_spaces)
     pyautogui.hotkey("enter")
 
 def choice(choose="YN", text="Y/N", default=None, timeout=10, *, hide=False):
@@ -105,7 +99,7 @@ def copyfile(*files):
             continue
         file_get_item += i + ","
     file_get_item = file_get_item[0:len(file_get_item) - 1]
-    args = ["powershell", "Get-Item %s | Set-Clipboard"%file_get_item]
+    args = [f"powershell", f"Get-Item {file_get_item} | Set-Clipboard"]
     subprocess.Popen(args)
 
 log("初始化终端", "info")
