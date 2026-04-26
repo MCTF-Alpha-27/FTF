@@ -1,0 +1,9 @@
+pywinauto
+cv2
+docx
+colorama
+natsort
+bcrypt
+psutil
+pyttsx3
+pyautogui

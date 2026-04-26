@@ -5,6 +5,7 @@ from docx import Document
 from time import sleep
 from colorama import Fore, init
 from collections import OrderedDict
+from natsort import natsorted
 from .exceptions import *
 from .functions import log, choice
 from .config import ftfpath
@@ -35,7 +36,7 @@ class FTFCmd(Cmd):
 
     def __init__(self, completekey: str = "tab", stdin: IO[str] | None = None, stdout: IO[str] | None = None) -> None:
         super().__init__(completekey, stdin, stdout)
-        self.years = [i for i in os.listdir(ftfpath) if os.path.isdir(os.path.join(ftfpath, i))]
+        self.years = natsorted(i for i in os.listdir(ftfpath) if os.path.isdir(os.path.join(ftfpath, i)))
         self.color = Fore.LIGHTGREEN_EX
 
     def emptyline(self):
@@ -241,7 +242,7 @@ class FTFCmd(Cmd):
             count = 0
             for year in self.years:
                 docments_path = os.path.join(ftfpath, year)
-                for document in glob(f"{docments_path}\\*.docx"):
+                for document in natsorted(glob(f"{docments_path}\\*.docx")):
                     count = self._find(document, keywords, count)
             self._check_month_span()
             print(f"在所有文档中共发现{count}个关键字词\n")
@@ -267,7 +268,7 @@ class FTFCmd(Cmd):
                     deduplicated_year.update(str(j) for j in range(start_year, end_year + 1))
                 else:
                     deduplicated_year.add(i)
-            deduplicated_year = sorted(deduplicated_year)
+            deduplicated_year = natsorted(deduplicated_year)
             count = 0
             for i in deduplicated_year:
                 if i not in self.years:
@@ -275,7 +276,7 @@ class FTFCmd(Cmd):
                     log(f"未找到{i}年的事件记录文档", "warning", logfile_only=True)
                     continue
                 docments_path = os.path.join(ftfpath, i)
-                for document in glob(f"{docments_path}\\*.docx"):
+                for document in natsorted(glob(f"{docments_path}\\*.docx")):
                     count = self._find(document, keywords, count)
             self._check_month_span()
             print(f"在{', '.join(year)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词\n")
@@ -301,18 +302,18 @@ class FTFCmd(Cmd):
                     deduplicated_month.update(str(j) for j in range(start_month, end_month + 1))
                 else:
                     deduplicated_month.add(i)
-            deduplicated_month = sorted(deduplicated_month)
+            deduplicated_month = natsorted(deduplicated_month)
             count = 0
-            for i in deduplicated_month:
-                if i not in [str(i) for i in range(1, 13)]:
-                    print(f"无效的月份: {i}月")
-                    log(f"无效的月份: {i}月", "warning", logfile_only=True)
-                    continue
-                for j in self.years:
-                    docments_path = os.path.join(ftfpath, j, f"{i}月.docx")
+            for i in self.years:
+                for j in deduplicated_month:
+                    if j not in [str(i) for i in range(1, 13)]:
+                        print(f"无效的月份: {j}月")
+                        log(f"无效的月份: {j}月", "warning", logfile_only=True)
+                        continue
+                    docments_path = os.path.join(ftfpath, i, f"{j}月.docx")
                     if not os.path.exists(docments_path):
-                        print(f"未找到{j}年{i}月的事件记录文档")
-                        log(f"未找到{j}年{i}月的事件记录文档", "warning", logfile_only=True)
+                        print(f"未找到{i}年{j}月的事件记录文档")
+                        log(f"未找到{i}年{j}月的事件记录文档", "warning", logfile_only=True)
                         continue
                     count = self._find(docments_path, keywords, count)
             self._check_month_span()
@@ -794,7 +795,8 @@ class FTFAdminCmd(FTFCmd):
 
     def complete_dellog(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
         if re.match(r"dellog \w*", line):
-            return [i.replace("logs\\", "").replace(".log", "") for i in glob("logs\\*.log") if i.replace("logs\\", "").replace(".log", "").startswith(text)]
+            return [i.replace("logs\\", "").replace(".log", "") for i in glob("logs\\*.log") if i.replace("logs\\", "").replace(".log", "").startswith(text)] + ["*"]
+        return []
 
 def help_ftf_admin():
     print(Fore.LIGHTRED_EX + "您已处在协议创始人权限下")
