@@ -225,9 +225,11 @@ class FTFCmd(Cmd):
                             也可使用“~”表示范围，如“2023~2026”表示2023年到2026年（包含2023年和2026年）的事件记录文档。
             month <months>  文档所属的月份，可填多个，使用空格分隔。
                             也可使用“~”表示范围，如“1~3”表示1月到3月（包含1月和3月）的事件记录文档。
-            only <document> 仅在指定的文档中查找关键字词，只能指定一个文档。
-                            若指定的文档格式为<year>/<month>，则表示在事件记录文档中查找，如“2023/1”表示2023年1月的事件记录文档。
-                            若指定的文档格式为<year>/annual_summary，则表示在年度总结中查找，如2023/annual_summary表示2023年的年度总结。
+            only <document> 仅在指定的文档中查找关键字词。
+                            若指定的文档格式为<year>/<month>，则表示在事件记录文档中查找，
+                            如“2023/1”表示2023年1月的事件记录文档。
+                            若指定的文档格式为<year>/annual_summary，则表示在年度总结中查找，
+                            如2023/annual_summary表示2023年的年度总结。
             *               在所有文档中查找关键字词，包括年度总结。
             /?              显示此帮助文档。
         """
@@ -249,100 +251,118 @@ class FTFCmd(Cmd):
             log(f"在所有文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
         elif documents[0] == "year":
-            year = documents[1:]
+            years = documents[1:]
             deduplicated_year = set()
-            for i in year:
-                if "~" in i:
-                    start_year, end_year = i.split("~")
+            for year in years:
+                if "~" in year:
+                    start_year, end_year = year.split("~")
                     if not start_year.isdigit() or not end_year.isdigit():
-                        print(f"无效的年份范围: {i}")
-                        log(f"无效的年份范围: {i}", "warning", logfile_only=True)
-                        year.remove(i)
+                        print(f"无效的年份范围: {year}")
+                        log(f"无效的年份范围: {year}", "warning", logfile_only=True)
+                        years.remove(year)
                         continue
                     start_year, end_year = int(start_year), int(end_year)
                     if start_year > end_year:
-                        print(f"无效的年份范围: {i}（起始年份大于结束年份）")
-                        log(f"无效的年份范围: {i}（起始年份大于结束年份）", "warning", logfile_only=True)
-                        year.remove(i)
+                        print(f"无效的年份范围: {year}（起始年份大于结束年份）")
+                        log(f"无效的年份范围: {year}（起始年份大于结束年份）", "warning", logfile_only=True)
+                        years.remove(year)
                         continue
-                    deduplicated_year.update(str(j) for j in range(start_year, end_year + 1))
+                    deduplicated_year.update(str(i) for i in range(start_year, end_year + 1))
                 else:
-                    deduplicated_year.add(i)
+                    deduplicated_year.add(year)
             deduplicated_year = natsorted(deduplicated_year)
             count = 0
-            for i in deduplicated_year:
-                if i not in self.years:
-                    print(f"未找到{i}年的事件记录文档")
-                    log(f"未找到{i}年的事件记录文档", "warning", logfile_only=True)
+            for year in deduplicated_year:
+                if year not in self.years:
+                    print(f"未找到{year}年的事件记录文档")
+                    log(f"未找到{year}年的事件记录文档", "warning", logfile_only=True)
                     continue
-                docments_path = os.path.join(ftfpath, i)
+                docments_path = os.path.join(ftfpath, year)
                 for document in natsorted(glob(f"{docments_path}\\*.docx")):
                     count = self._find(document, keywords, count)
             self._check_month_span()
-            print(f"在{', '.join(year)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词\n")
-            log(f"在{', '.join(year)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+            print(f"在{', '.join(years)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词\n")
+            log(f"在{', '.join(years)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
         elif documents[0] == "month":
-            month = documents[1:]
+            months = documents[1:]
             deduplicated_month = set()
-            for i in month:
-                if "~" in i:
-                    start_month, end_month = i.split("~")
+            for month in months:
+                if "~" in month:
+                    start_month, end_month = month.split("~")
                     if not start_month.isdigit() or not end_month.isdigit():
-                        print(f"无效的月份范围: {i}")
-                        log(f"无效的月份范围: {i}", "warning", logfile_only=True)
-                        month.remove(i)
+                        print(f"无效的月份范围: {month}")
+                        log(f"无效的月份范围: {month}", "warning", logfile_only=True)
+                        months.remove(month)
                         continue
                     start_month, end_month = int(start_month), int(end_month)
                     if start_month > end_month:
-                        print(f"无效的月份范围: {i}（起始月份大于结束月份）")
-                        log(f"无效的月份范围: {i}（起始月份大于结束月份）", "warning", logfile_only=True)
-                        month.remove(i)
+                        print(f"无效的月份范围: {month}（起始月份大于结束月份）")
+                        log(f"无效的月份范围: {month}（起始月份大于结束月份）", "warning", logfile_only=True)
+                        months.remove(month)
                         continue
-                    deduplicated_month.update(str(j) for j in range(start_month, end_month + 1))
+                    if start_month < 1 or end_month > 12:
+                        print(f"无效的月份范围: {month}（月份应在1到12之间）")
+                        log(f"无效的月份范围: {month}（月份应在1到12之间）", "warning", logfile_only=True)
+                        months.remove(month)
+                        continue
+                    deduplicated_month.update(str(i) for i in range(start_month, end_month + 1))
                 else:
-                    deduplicated_month.add(i)
+                    deduplicated_month.add(month)
             deduplicated_month = natsorted(deduplicated_month)
             count = 0
-            for i in self.years:
-                for j in deduplicated_month:
-                    if j not in [str(i) for i in range(1, 13)]:
-                        print(f"无效的月份: {j}月")
-                        log(f"无效的月份: {j}月", "warning", logfile_only=True)
+            for year in self.years:
+                for month in deduplicated_month:
+                    if month not in [str(i) for i in range(1, 13)]:
+                        print(f"无效的月份: {month}月")
+                        log(f"无效的月份: {month}月", "warning", logfile_only=True)
                         continue
-                    docments_path = os.path.join(ftfpath, i, f"{j}月.docx")
+                    docments_path = os.path.join(ftfpath, year, f"{month}月.docx")
                     if not os.path.exists(docments_path):
-                        print(f"未找到{i}年{j}月的事件记录文档")
-                        log(f"未找到{i}年{j}月的事件记录文档", "warning", logfile_only=True)
+                        print(f"未找到{year}年{month}月的事件记录文档")
+                        log(f"未找到{year}年{month}月的事件记录文档", "warning", logfile_only=True)
                         continue
                     count = self._find(docments_path, keywords, count)
             self._check_month_span()
-            print(f"在{', '.join(month)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词\n")
-            log(f"在{', '.join(month)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+            print(f"在{', '.join(months)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词\n")
+            log(f"在{', '.join(months)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
         elif documents[0] == "only":
             count = 0
-            document = documents[1]
-            if document.split("/")[1] == "annual_summary":
-                docments_path = os.path.join(ftfpath, document.split("/")[0], "年度总结.docx")
-            else:
-                docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split('/')[1]}月.docx")
-            if not os.path.exists(docments_path):
-                if document.split("/")[1] == "annual_summary":
-                    print(f"未找到{document.split('/')[0]}年的年度总结")
-                    log(f"未找到{document.split('/')[0]}年的年度总结", "warning", logfile_only=True)
+            normal_count = 0
+            annual_summary_count = 0
+            document = documents[1:]
+            for i in document:
+                if "/" not in i or len(i.split("/")) != 2:
+                    print(f"无效的文档格式: {i}")
+                    log(f"无效的文档格式: {i}", "warning", logfile_only=True)
+                    document.remove(i)
+                    continue
+                if i.split("/")[1] == "annual_summary":
+                    docments_path = os.path.join(ftfpath, i.split("/")[0], "年度总结.docx")
+                    annual_summary_count += 1
                 else:
-                    print(f"未找到{document}的事件记录文档")
-                    log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
-                return
-            count = self._find(docments_path, keywords, count)
+                    docments_path = os.path.join(ftfpath, i.split("/")[0], f"{i.split('/')[1]}月.docx")
+                    normal_count += 1
+                if not os.path.exists(docments_path):
+                    if i.split("/")[1] == "annual_summary":
+                        print(f"未找到{i.split('/')[0]}年的年度总结")
+                        log(f"未找到{i.split('/')[0]}年的年度总结", "warning", logfile_only=True)
+                    else:
+                        print(f"未找到{i}的事件记录文档")
+                        log(f"未找到{i}的事件记录文档", "warning", logfile_only=True)
+                    continue
+                count = self._find(docments_path, keywords, count)
             self._check_month_span()
-            if document.split("/")[1] == "annual_summary":
-                print(f"在{document.split('/')[0]}年的年度总结中共发现{count}个关键字词\n")
-                log(f"在{document.split('/')[0]}年的年度总结中共发现{count}个关键字词", "info", logfile_only=True)
+            if annual_summary_count > 0 and normal_count > 0:
+                print(f"在{', '.join(document)}这{len(document) - annual_summary_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词\n")
+                log(f"在{', '.join(document)}这{len(document) - annual_summary_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词", "info", logfile_only=True)
+            elif annual_summary_count > 0 and normal_count == 0:
+                print(f"在{', '.join(document)}这{annual_summary_count}个年度总结中共发现{count}个关键字词\n")
+                log(f"在{', '.join(document)}这{annual_summary_count}个年度总结中共发现{count}个关键字词", "info", logfile_only=True)
             else:
-                print(f"在{document}这个事件记录文档中共发现{count}个关键字词\n")
-                log(f"在{document}这个事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+                print(f"在{', '.join(document)}这{len(document)}个事件记录文档中共发现{count}个关键字词\n")
+                log(f"在{', '.join(document)}这{len(document)}个事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
             log("", "info", logfile_only=True)
         else:
             print(self.do_find.__doc__)
@@ -352,7 +372,7 @@ class FTFCmd(Cmd):
             return [i for i in self.years if i.startswith(text)]
         if re.match(r"find [^.*$]+ in month \w*", line):
             return [i for i in [str(i) for i in range(1, 13)] if i.startswith(text)]
-        if re.match(r"find [^.*$]+ in only \w*", line) and len(line.split(" ")) < 6:
+        if re.match(r"find [^.*$]+ in only \w*", line):
             parts = text.split("/")
             year_part = parts[0] if len(parts) > 0 else ""
             month_part = parts[1] if len(parts) > 1 else ""
@@ -379,7 +399,8 @@ class FTFCmd(Cmd):
         语法：open <document> [/?]
             document    指定的文档。
                         若文档格式为<year>/<month>，则表示打开事件记录文档，如“2023/1”表示2023年1月的事件记录文档。
-                        若文档格式为<year>/annual_summary，则表示打开年度总结，如2023/annual_summary表示2023年的年度总结。
+                        若文档格式为<year>/annual_summary，则表示打开年度总结，如2023/annual_summary表示2023
+                        年的年度总结。
             /?          显示此帮助文档。
         """
         if args.split(" ")[0] == "/?" or args == "":
