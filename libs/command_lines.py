@@ -821,6 +821,15 @@ class FTFCmd(Cmd):
         print("检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断")
         log("检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断", "info", logfile_only=True)
 
+    def complete_check(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+        if line.split(" ")[1] == "*":
+            return []
+        if len(line.split(" ")) > 2:
+            return [i for i in self.years if i.startswith(text)]
+        if line.startswith("check "):
+            return ["*"] + [i for i in self.years if i.startswith(text)]
+        return []
+
     def do_calculate(self, args: str):
         """
         计算“时期”的强度。
