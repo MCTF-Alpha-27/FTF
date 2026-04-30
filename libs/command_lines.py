@@ -78,7 +78,7 @@ class FTFCmd(Cmd):
         raise CommandLineExit()
     
     def _find(self, document: str, keywords: set[str], count: int) -> int:
-        if document.split("\\")[-1].startswith("~$"):
+        if os.path.basename(document).startswith("~$"):
             return count
         doc = Document(document)
         document_friendly_name = document.split("\\")[-2] + "/" + document.split("\\")[-1].removesuffix(".docx")
@@ -355,8 +355,8 @@ class FTFCmd(Cmd):
                 count = self._find(docments_path, keywords, count)
             self._check_month_span()
             if annual_summary_count > 0 and normal_count > 0:
-                print(f"在{', '.join(document)}这{len(document) - annual_summary_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词\n")
-                log(f"在{', '.join(document)}这{len(document) - annual_summary_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词", "info", logfile_only=True)
+                print(f"在{', '.join(document)}这{normal_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词\n")
+                log(f"在{', '.join(document)}这{normal_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词", "info", logfile_only=True)
             elif annual_summary_count > 0 and normal_count == 0:
                 print(f"在{', '.join(document)}这{annual_summary_count}个年度总结中共发现{count}个关键字词\n")
                 log(f"在{', '.join(document)}这{annual_summary_count}个年度总结中共发现{count}个关键字词", "info", logfile_only=True)
@@ -645,6 +645,182 @@ class FTFCmd(Cmd):
             return [i for i in ["N&M", "normal_period", "combined_period"] if i.startswith(text)]
         return []
     
+    def _check_annual_summary(self, paragraphs: list, year: str):
+        line = 0
+        normal_period_start = False
+        combined_period_start = False
+        irregularity_count = 0
+        for paragraph in paragraphs:
+            line += 1
+            if line == 1 and paragraph.text != "年度总结":
+                print(f"{year}年年度总结第{line}个段落: 标题不规范（应为“年度总结”），请更正")
+                log(f"{year}年年度总结第{line}个段落: 标题不规范（应为“年度总结”），请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            if line == 2 and paragraph.text != "朝花已经绽放，是时候将它拾起":
+                print(f"{year}年年度总结第{line}个段落: 应为“朝花已经绽放，是时候将它拾起”，请更正")
+                log(f"{year}年年度总结第{line}个段落: 应为“朝花已经绽放，是时候将它拾起”，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            if line == 3 and re.search(r"(\d+)年", paragraph.text).group(1) != year:
+                print(f"{year}年年度总结第{line}个段落: 年份不匹配，请更正")
+                log(f"{year}年年度总结第{line}个段落: 年份不匹配，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            if paragraph.text != "" and paragraph.text[0].isdigit() and paragraph.text[1] == "月":
+                if int(paragraph.text[0]) < 1 or int(paragraph.text[0]) > 12:
+                    print(f"{year}年年度总结第{line}个段落: 月份异常（月份应为1到12的数字），请更正")
+                    log(f"{year}年年度总结第{line}个段落: 月份异常（月份应为1到12的数字），请更正", "info", logfile_only=True)
+                    irregularity_count += 1
+                if not paragraph.text.endswith("："):
+                    print(f"{year}年年度总结第{line}个段落: 缺少冒号，请更正")
+                    log(f"{year}年年度总结第{line}个段落: 缺少冒号，请更正", "info", logfile_only=True)
+                    irregularity_count += 1
+                if not re.search(r"共\d+个", paragraph.text) and not normal_period_start and not combined_period_start:
+                    print(f"{year}年年度总结第{line}个段落: 缺少新事物（或重大事件）的数量统计（应包含“共X个”字样），请更正")
+                    log(f"{year}年年度总结第{line}个段落: 缺少新事物（或重大事件）的数量统计（应包含“共X个”字样），请更正", "info", logfile_only=True)
+                    irregularity_count += 1
+            if paragraph.text.startswith("其中，共有"):
+                normal_period_start = True
+                if paragraphs[line - 2].text != "":
+                    print(f"{year}年年度总结第{line}个段落: 未空行，请更正")
+                    log(f"{year}年年度总结第{line}个段落: 未空行，请更正", "info", logfile_only=True)
+                    irregularity_count += 1
+                if not re.search(r"(\d+)个常规“时期”", paragraph.text):
+                    print(f"{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正")
+                    log(f"{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正", "info", logfile_only=True)
+                    irregularity_count += 1
+            if paragraph.text != "" and paragraph.text[0].isdigit() and paragraph.text[1] == "月" and "称为" not in paragraph.text and normal_period_start:
+                print(f"{year}年年度总结第{line}个段落: 缺少月份命名，请更正")
+                log(f"{year}年年度总结第{line}个段落: 缺少月份命名，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            if paragraph.text.startswith("以及"):
+                combined_period_start = True
+                if paragraphs[line - 2].text != "":
+                    print(f"{year}年年度总结第{line}个段落: 未空行，请更正")
+                    log(f"{year}年年度总结第{line}个段落: 未空行，请更正", "info", logfile_only=True)
+                    irregularity_count += 1
+                if not re.search(r"(\d+)个合称“时期”", paragraph.text):
+                    print(f"{year}年年度总结第{line}个段落: 未统计合称“时期”数量，请更正")
+                    log(f"{year}年年度总结第{line}个段落: 未统计合称“时期”数量，请更正", "info", logfile_only=True)
+                    irregularity_count += 1
+            if paragraph.text.startswith("年主题曲") and paragraphs[line - 2].text != "":
+                print(f"{year}年年度总结第{line}个段落: 未空行，请更正")
+                log(f"{year}年年度总结第{line}个段落: 未空行，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+        if "年主题曲：" not in str([p.text for p in paragraphs]):
+            print(f"{year}年年度总结: 缺少年主题曲部分（若没有也请标记为“无”），请更正")
+            log(f"{year}年年度总结: 缺少年主题曲部分（若没有也请标记为“无”），请更正", "info", logfile_only=True)
+            irregularity_count += 1
+        if "年文章：" not in str([p.text for p in paragraphs]):
+            print(f"{year}年年度总结: 缺少年文章部分（若没有也请标记为“无”），请更正")
+            log(f"{year}年年度总结: 缺少年文章部分（若没有也请标记为“无”），请更正", "info", logfile_only=True)
+            irregularity_count += 1
+        if "年度评估：" not in str([p.text for p in paragraphs]):
+            print(f"{year}年年度总结: 缺少年度评估部分，请更正")
+            log(f"{year}年年度总结: 缺少年度评估部分，请更正", "info", logfile_only=True)
+            irregularity_count += 1
+        return irregularity_count
+
+    def _check_event_record(self, paragraphs: list, year: str, month: str):
+        irregularity_count = 0
+        parts = []
+        tmp = []
+        for paragraph in paragraphs:
+            if paragraph.text == "":
+                parts.append(tmp)
+                tmp = []
+                continue
+            tmp.append(paragraph.text)
+        for part in parts:
+            if not re.search(r"(\d+)年(\d+)月", part[0]):
+                print(f"{year}年{month}月事件记录第{parts.index(part) + 1}周: 未记录时间，请更正")
+                log(f"{year}年{month}月事件记录第{parts.index(part) + 1}周: 未记录时间，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            if "周度：" in part[0] and "周度评估：" not in part[-1]:
+                print(f"{year}年{month}月事件记录第{parts.index(part) + 1}周: 缺少周度评估，请更正")
+                log(f"{year}年{month}月事件记录第{parts.index(part) + 1}周: 缺少周度评估，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            if not "正面情感评估：" in str(part):
+                print(f"{year}年{month}月事件记录第{parts.index(part) + 1}周: 缺少正面情感评估，请更正")
+                log(f"{year}年{month}月事件记录第{parts.index(part) + 1}周: 缺少正面情感评估，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            if not "负面情感评估：" in str(part):
+                print(f"{year}年{month}月事件记录第{parts.index(part) + 1}周: 缺少负面情感评估，请更正")
+                log(f"{year}年{month}月事件记录第{parts.index(part) + 1}周: 缺少负面情感评估，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+        return irregularity_count
+
+    def _check(self, document: str):
+        filename = os.path.basename(document)
+        if filename.startswith("~$"):
+            return 0
+        doc = Document(document)
+        year = os.path.basename(os.path.dirname(document))
+        irregularity_count = 0
+        if filename == "年度总结.docx":
+            irregularity_count += self._check_annual_summary(doc.paragraphs, year)
+        if filename.endswith("月.docx"):
+            irregularity_count += self._check_event_record(doc.paragraphs, year, filename.split("月")[0])
+        return irregularity_count
+
+    def do_check(self, args: str):
+        """
+        检查事件记录文档及年度总结的格式规范性。
+
+        语法：check <years> [/?]
+            years   指定要检查的年份范围，可填多个，使用空格分隔。
+                    也可使用“~”表示范围，如“2023~2026”表示检查2023年到2026年（包含2023年和2026年）的文档。
+                    键入“*”表示检查所有文档。
+            /?      显示此帮助文档。
+        
+        注：由于2023年的文档处于早期阶段，并未统一格式，因此不会检查2023年的文档。
+        """
+        if args.split(" ")[0] == "/?" or args == "":
+            print(self.do_check.__doc__)
+            return
+        years = args.split(" ")
+        if years[0] == "*":
+            years = self.years[1:]
+        else:
+            deduplicated_year = set()
+            for year in years:
+                if "~" in year:
+                    start_year, end_year = year.split("~")
+                    if not start_year.isdigit() or not end_year.isdigit():
+                        print(f"无效的年份范围: {year}")
+                        log(f"无效的年份范围: {year}", "warning", logfile_only=True)
+                        years.remove(year)
+                        continue
+                    start_year, end_year = int(start_year), int(end_year)
+                    if start_year > end_year:
+                        print(f"无效的年份范围: {year}（起始年份大于结束年份）")
+                        log(f"无效的年份范围: {year}（起始年份大于结束年份）", "warning", logfile_only=True)
+                        years.remove(year)
+                        continue
+                    deduplicated_year.update(str(i) for i in range(start_year, end_year + 1))
+                else:
+                    if not year.isdigit():
+                        print(f"无效的年份: {year}")
+                        log(f"无效的年份: {year}", "warning", logfile_only=True)
+                        continue
+                    deduplicated_year.add(year)
+            years = natsorted(deduplicated_year)
+            if "2023" in years:
+                print("通常不会检查2023年的文档，具体原因参见帮助文档。")
+                log("通常不会检查2023年的文档，具体原因参见帮助文档。", "info", logfile_only=True)
+                years.remove("2023")
+            if len(years) == 0:
+                print("未指定有效的年份，检查已取消。")
+                log("未指定有效的年份，检查已取消。", "warning", logfile_only=True)
+                return
+        irregularity_count = 0
+        for year in years:
+            docments_path = os.path.join(ftfpath, year)
+            for document in natsorted(glob(f"{docments_path}\\*.docx")):
+                irregularity_count += self._check(document)
+        print(f"对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范处")
+        log(f"对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范处", "info", logfile_only=True)
+        print("检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断")
+        log("检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断", "info", logfile_only=True)
+
     def do_calculate(self, args: str):
         """
         计算“时期”的强度。
