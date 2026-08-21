@@ -5,7 +5,7 @@ from docx import Document
 from docx.text.paragraph import Paragraph
 from time import sleep
 from colorama import Fore, init
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from natsort import natsorted
 from .exceptions import *
 from .functions import log, choice
@@ -116,15 +116,15 @@ class FTFCmd(Cmd):
                             if first_month_span:
                                 if line < first_month_span and first_month_span < half_length:
                                     tag = "上跨月"
-                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{self.COLOR}"
                                     self.has_upper_part = True
                                 elif line > first_month_span and first_month_span > half_length:
                                     tag = "下跨月"
-                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.COLOR}"
                                     self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
-                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.COLOR}"
                                 self.has_lower_part = True
                         if tag:
                             print(f"{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
@@ -140,15 +140,15 @@ class FTFCmd(Cmd):
                             if first_month_span:
                                 if line < first_month_span and first_month_span < half_length:
                                     tag = "上跨月"
-                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{self.COLOR}"
                                     self.has_upper_part = True
                                 elif line > first_month_span and first_month_span > half_length:
                                     tag = "下跨月"
-                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.COLOR}"
                                     self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
-                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.COLOR}"
                                 self.has_lower_part = True
                         if tag:
                             print(f"{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
@@ -164,15 +164,15 @@ class FTFCmd(Cmd):
                             if first_month_span:
                                 if line < first_month_span and first_month_span < half_length:
                                     tag = "上跨月"
-                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{self.COLOR}"
                                     self.has_upper_part = True
                                 elif line > first_month_span and first_month_span > half_length:
                                     tag = "下跨月"
-                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                    colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.COLOR}"
                                     self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
-                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{Fore.LIGHTGREEN_EX}"
+                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.COLOR}"
                                 self.has_lower_part = True
                         if tag:
                             print(f"{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
@@ -657,6 +657,7 @@ class FTFCmd(Cmd):
         line = 0
         normal_period_start = False
         combined_period_start = False
+        positioning_objects = []
         irregularity_count = 0
         for paragraph in paragraphs:
             line += 1
@@ -667,6 +668,14 @@ class FTFCmd(Cmd):
             if line == 2 and paragraph.text != "朝花已经绽放，是时候将它拾起":
                 print(f"{year}年年度总结第{line}个段落: 应为“朝花已经绽放，是时候将它拾起”，请更正")
                 log(f"{year}年年度总结第{line}个段落: 应为“朝花已经绽放，是时候将它拾起”，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            if "," in paragraph.text:
+                print(f"{year}年年度总结第{line}个段落: 不应出现半角逗号，请更正")
+                log(f"{year}年年度总结第{line}个段落: 不应出现半角逗号，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            if ":" in paragraph.text:
+                print(f"{year}年年度总结第{line}个段落: 不应出现半角冒号，请更正")
+                log(f"{year}年年度总结第{line}个段落: 不应出现半角冒号，请更正", "info", logfile_only=True)
                 irregularity_count += 1
             year_match = re.search(r"(\d+)年共有(\d+)个新事物（或重大事件）", paragraph.text)
             if year_match and year_match.group(1) != year:
@@ -696,6 +705,11 @@ class FTFCmd(Cmd):
                     print(f"{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正")
                     log(f"{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正", "info", logfile_only=True)
                     irregularity_count += 1
+            if "定位物" in paragraph.text: # FIXME: 分隔条件有误
+                obj = re.sub(r"等.*?类", "|", paragraph.text.split("定位物：")[-1]).replace("、", "|").split("|")
+                for i in obj:
+                    if i != "":
+                        positioning_objects.append(i if not i.startswith("，") else i[1:])
             if paragraph.text != "" and paragraph.text[0].isdigit() and paragraph.text[1] == "月" and "称为" not in paragraph.text and normal_period_start:
                 print(f"{year}年年度总结第{line}个段落: 缺少月份命名，请更正")
                 log(f"{year}年年度总结第{line}个段落: 缺少月份命名，请更正", "info", logfile_only=True)
@@ -722,6 +736,29 @@ class FTFCmd(Cmd):
             print(f"{year}年年度总结: 缺少年文章部分（若没有也请标记为“无”），请更正")
             log(f"{year}年年度总结: 缺少年文章部分（若没有也请标记为“无”），请更正", "info", logfile_only=True)
             irregularity_count += 1
+        seen = set()
+        for i in positioning_objects:
+            if i.split("（")[0] in seen and "（复用）" not in i:
+                print(f"{year}年年度总结: 存在未标明复用的定位物“{i}”，请更正")
+                log(f"{year}年年度总结: 存在未标明复用的定位物“{i}”，请更正", "info", logfile_only=True)
+                irregularity_count += 1
+            else:
+                seen.add(i.split("（")[0])
+        for obj in positioning_objects:
+            isreuse = False
+            for y in self.YEARS:
+                if y == year:
+                    continue
+                annual_summary_doc = Document(os.path.join(ftfpath, y, "年度总结.docx"))
+                if year > y and obj.split("（")[0] in str([p.text for p in annual_summary_doc.paragraphs]) and "（复用）" not in obj:
+                    print(f"{year}年年度总结: 存在未标明复用的定位物“{obj}”，其在{y}年年度总结中曾被使用，请更正")
+                    log(f"{year}年年度总结: 存在未标明复用的定位物“{obj}”，其在{y}年年度总结中曾被使用，请更正", "info", logfile_only=True)
+                    isreuse = True
+                    irregularity_count += 1
+            if not isreuse and "（复用）" in obj:
+                print(f"{year}年年度总结: 存在未被复用的定位物“{obj}”被标明为复用，请更正")
+                log(f"{year}年年度总结: 存在未被复用的定位物“{obj}”被标明为复用，请更正", "info", logfile_only=True)
+                irregularity_count += 1
         possible_yearly_assessment = [p.text for p in paragraphs][-1]
         if possible_yearly_assessment.startswith("年度评估："):
             yearly_assessment = possible_yearly_assessment.split("：")[1]
@@ -886,8 +923,8 @@ class FTFCmd(Cmd):
             docments_path = os.path.join(ftfpath, year)
             for document in natsorted(glob(f"{docments_path}\\*.docx")):
                 irregularity_count += self._check(document)
-        print(f"对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范处")
-        log(f"对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范处", "info", logfile_only=True)
+        print(f"对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范或疑似不规范处")
+        log(f"对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范或疑似不规范处", "info", logfile_only=True)
         print("注意: 检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断")
         log("注意: 检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断", "info", logfile_only=True)
 
