@@ -102,4 +102,11 @@ def copyfile(*files):
     args = [f"powershell", f"Get-Item {file_get_item} | Set-Clipboard"]
     subprocess.Popen(args)
 
+def display_width(s):
+    return sum(2 if ord(c) > 127 else 1 for c in s)
+
+def pad(s, width):
+    cur = display_width(s)
+    return s + " " * (width - cur)
+
 log("初始化终端", "info")

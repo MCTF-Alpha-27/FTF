@@ -1,6 +1,6 @@
 pywinauto
-cv2
-docx
+opencv-python
+python-docx
 colorama
 natsort
 bcrypt

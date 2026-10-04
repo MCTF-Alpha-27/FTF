@@ -5,6 +5,7 @@ config = ConfigParser()
 if not os.path.exists("config.ini"):
     config["Logger"] = {"debug": False, "voice": True}
     config["FTF"] = {"ftfpath": r"{ftfpath}", "controller": "一只叫迷迭香的菲林"}
+    config["API"] = {"client_id": r"{client_id}", "access_token": r"{access_token}", "open_id": r"{open_id}"}
     with open("config.ini", "w", encoding="gbk") as cfgfile:
         config.write(cfgfile)
 
@@ -13,3 +14,6 @@ debug = True if config.get("Logger", "debug") == "True" else False
 voice = True if config.get("Logger", "voice") == "True" else False
 ftfpath = config.get("FTF", "ftfpath")
 controller = config.get("FTF", "controller")
+client_id = config.get("API", "client_id")
+access_token = config.get("API", "access_token")
+open_id = config.get("API", "open_id")

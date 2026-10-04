@@ -5,19 +5,22 @@ from docx import Document
 from docx.text.paragraph import Paragraph
 from time import sleep
 from colorama import Fore, init
-from collections import OrderedDict, Counter
+from collections import OrderedDict
 from natsort import natsorted
 from .exceptions import *
-from .functions import log, choice
-from .config import ftfpath
+from .functions import log, choice, display_width, pad
+from .config import ftfpath, client_id, access_token, open_id
 
 import os
 import re
+import json
+import hashlib
 import importlib
 import datetime
 import math
 import getpass
 import bcrypt
+import requests
 
 init()
 
@@ -39,13 +42,13 @@ class FTFCmd(Cmd):
         super().__init__(completekey, stdin, stdout)
         self.YEARS = natsorted(i for i in os.listdir(ftfpath) if os.path.isdir(os.path.join(ftfpath, i)))
         self.COLOR = Fore.LIGHTGREEN_EX
-        self.POSITIVE_LEVELS = {"高", "中", "低"}
-        self.NEGATIVE_LEVELS = {"严重", "中", "轻微"}
-        self.POSITIVE_ASSESS = {"积极一", "积极二", "积极三"}
-        self.NEGATIVE_ASSESS = {"消极一", "消极二", "消极三"}
-        self.WEEKLY_JUDGMENT = {"糟糕的一周", "平平无奇的一周", "标准的一周", "杰出的一周", "优秀的一周"}
-        self.MONTHLY_JUDGMENT = {"糟糕的一个月", "平平无奇的一个月", "标准的一个月", "杰出的一个月", "优秀的一个月"}
-        self.YEARLY_JUDGMENT = {"糟糕的一年", "平平无奇的一年", "标准的一年", "杰出的一年", "优秀的一年"}
+        self.POSITIVE_LEVELS = ("高", "中", "低")
+        self.NEGATIVE_LEVELS = ("严重", "中", "轻微")
+        self.POSITIVE_ASSESS = ("积极一", "积极二", "积极三")
+        self.NEGATIVE_ASSESS = ("消极一", "消极二", "消极三")
+        self.WEEKLY_JUDGMENT = ("糟糕的一周", "平平无奇的一周", "标准的一周", "杰出的一周", "优秀的一周")
+        self.MONTHLY_JUDGMENT = ("糟糕的一个月", "平平无奇的一个月", "标准的一个月", "杰出的一个月", "优秀的一个月")
+        self.YEARLY_JUDGMENT = ("糟糕的一年", "平平无奇的一年", "标准的一年", "杰出的一年", "优秀的一年")
 
     def emptyline(self):
         return
@@ -705,7 +708,7 @@ class FTFCmd(Cmd):
                     print(f"{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正")
                     log(f"{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正", "info", logfile_only=True)
                     irregularity_count += 1
-            if "定位物" in paragraph.text: # FIXME: 分隔条件有误
+            if "定位物" in paragraph.text:
                 obj = re.sub(r"等.*?类", "|", paragraph.text.split("定位物：")[-1]).replace("、", "|").split("|")
                 for i in obj:
                     if i != "":
@@ -806,6 +809,7 @@ class FTFCmd(Cmd):
                 log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少正面情感评估，请更正", "info", logfile_only=True)
                 irregularity_count += 1
             else:
+                positive_assessment_highest = -1
                 for line in part:
                     if line.startswith("正面情感评估："):
                         if "，" in line:
@@ -822,11 +826,19 @@ class FTFCmd(Cmd):
                             print(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 积极情感评估等级无效，请更正")
                             log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 积极情感评估等级无效，请更正", "info", logfile_only=True)
                             irregularity_count += 1
+                    matched_positive_assessment = next((i for i in self.POSITIVE_ASSESS if i in line and not line.startswith("正面情感评估：") and not line.startswith("负面情感评估：")), None)
+                    if matched_positive_assessment:
+                        positive_assessment_highest = max(positive_assessment_highest, self.POSITIVE_ASSESS.index(matched_positive_assessment))
+                if positive_assessment_highest >= 0 and self.POSITIVE_ASSESS[positive_assessment_highest] != positive_assessment:
+                    print(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感评估等级错误，本周出现的最高等级为{self.POSITIVE_ASSESS[positive_assessment_highest]}，请更正")
+                    log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感评估等级错误，本周出现的最高等级为{self.POSITIVE_ASSESS[positive_assessment_highest]}，请更正", "info", logfile_only=True)
+                    irregularity_count += 1
             if not "负面情感评估：" in str(part):
                 print(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少负面情感评估，请更正")
                 log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少负面情感评估，请更正", "info", logfile_only=True)
                 irregularity_count += 1
             else:
+                negative_assessment_highest = -1
                 for line in part:
                     if line.startswith("负面情感评估："):
                         if "，" in line:
@@ -843,6 +855,13 @@ class FTFCmd(Cmd):
                             print(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 消极情感评估等级无效，请更正")
                             log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 消极情感评估等级无效，请更正", "info", logfile_only=True)
                             irregularity_count += 1
+                    matched_negative_assessment = next((i for i in self.NEGATIVE_ASSESS if i in line and not line.startswith("正面情感评估：") and not line.startswith("负面情感评估：")), None)
+                    if matched_negative_assessment:
+                        negative_assessment_highest = max(negative_assessment_highest, self.NEGATIVE_ASSESS.index(matched_negative_assessment))
+                if negative_assessment_highest >= 0 and self.NEGATIVE_ASSESS[negative_assessment_highest] != negative_assessment:
+                    print(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感评估等级错误，本周出现的最高等级为{self.NEGATIVE_ASSESS[negative_assessment_highest]}，请更正")
+                    log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感评估等级错误，本周出现的最高等级为{self.NEGATIVE_ASSESS[negative_assessment_highest]}，请更正", "info", logfile_only=True)
+                    irregularity_count += 1
         if possible_monthly_assessment and possible_monthly_assessment[0].startswith("月度评估："):
             monthly_assessment = possible_monthly_assessment[0].split("：")[1]
             if monthly_assessment not in self.MONTHLY_JUDGMENT:
@@ -1105,6 +1124,236 @@ class FTFAdminCmd(FTFCmd):
     def complete_dellog(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
         if line.startswith("dellog "):
             return [i.replace("logs\\", "").replace(".log", "") for i in glob("logs\\*.log") if i.replace("logs\\", "").replace(".log", "").startswith(text)]
+        return []
+
+    CLOUD_API = "https://docs.qq.com/openapi/drive/v2"
+
+    def _cloud_headers(self) -> dict:
+        return {
+            "Access-Token": access_token,
+            "Client-Id": client_id,
+            "Open-Id": open_id,
+            "Accept": "application/json",
+        }
+
+    def _cloud_list_folder(self, folder_id: str | None = None) -> list[dict]:
+        url = f"{self.CLOUD_API}/folders"
+        if folder_id:
+            url += f"/{folder_id}"
+        items = []
+        start = 0
+        while True:
+            response = requests.get(url, headers=self._cloud_headers(), params={"start": start, "limit": 50})
+            response.raise_for_status()
+            result = response.json()
+            if result.get("ret") != 0:
+                raise Exception(f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}")
+            data = result.get("data") or {}
+            items.extend(data.get("list") or [])
+            next_start = data.get("next") or 0
+            if not next_start or next_start == start:
+                break
+            start = next_start
+        return items
+
+    def _cloud_find_folder(self, parent_id: str | None, title: str) -> str | None:
+        for item in self._cloud_list_folder(parent_id):
+            if item.get("type") == "folder" and item.get("title") == title:
+                return item.get("ID")
+        return None
+
+    def do_listfiles(self, args: str):
+        """
+        列出《朝花夕拾协议》指定年份的云端文件。
+
+        语法：listfiles <year> [/?]
+            year    指定要列出文件的年份。
+            /?      显示此帮助文档。
+        """
+        if args.split(" ")[0] == "/?" or args == "":
+            print(self.do_listfiles.__doc__)
+            return
+        year = args.split(" ")[0]
+        if year not in self.YEARS:
+            print(f"无效的年份: {year}")
+            log(f"无效的年份: {year}", "warning", logfile_only=True)
+            return
+        root_title = os.path.basename(ftfpath)
+        try:
+            root_id = self._cloud_find_folder(None, root_title)
+            if root_id is None:
+                print(f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”")
+                log(f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”", "warning", logfile_only=True)
+                return
+            year_id = self._cloud_find_folder(root_id, year)
+            if year_id is None:
+                print(f"未在腾讯文档云端找到{year}年文件夹")
+                log(f"未在腾讯文档云端找到{year}年文件夹", "warning", logfile_only=True)
+                return
+            files = natsorted((i for i in self._cloud_list_folder(year_id) if i.get("type") != "folder"), key=lambda i: i.get("title", ""))
+        except Exception as e:
+            print(f"访问腾讯文档云端失败: {e}")
+            log(f"访问腾讯文档云端失败: {e}", "error", logfile_only=True)
+            return
+        if not files:
+            print(f"{year}年文件夹中没有云端文件")
+            log(f"{year}年文件夹中没有云端文件", "info", logfile_only=True)
+            return
+        name_width = max([display_width("文件名称")] + [display_width(i.get("title", "")) for i in files])
+        id_width = max([display_width("文件ID")] + [display_width(i.get("ID", "")) for i in files])
+        header = f"{pad('文件名称', name_width)}  {pad('文件ID', id_width)}"
+        print(header)
+        print("-" * display_width(header))
+        log(header, "info", logfile_only=True)
+        for item in files:
+            line = f"{pad(item.get('title', ''), name_width)}  {pad(item.get('ID', ''), id_width)}"
+            print(line)
+            log(line, "info", logfile_only=True)
+        print(f"共列出{year}年的{len(files)}个云端文件")
+        log(f"共列出{year}年的{len(files)}个云端文件", "info", logfile_only=True)
+
+    def complete_listfiles(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+        if line.startswith("listfiles "):
+            return [i for i in self.YEARS if i.startswith(text)]
+        return []
+
+    CLOUD_MANIFEST = "logs\\cloud_manifest.json"
+
+    def _load_cloud_manifest(self) -> dict:
+        if not os.path.exists(self.CLOUD_MANIFEST):
+            return {}
+        try:
+            with open(self.CLOUD_MANIFEST, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return {}
+
+    def _save_cloud_manifest(self, manifest: dict) -> None:
+        if not os.path.exists("logs"):
+            os.mkdir("logs")
+        with open(self.CLOUD_MANIFEST, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+    def _local_file_hash(self, path: str) -> str:
+        digest = hashlib.sha256()
+        with open(path, "rb") as f:
+            while chunk := f.read(8192):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    def do_verify(self, args: str):
+        """
+        校验《朝花夕拾协议》云端文件与本地文件是否一致。
+
+        语法：verify <year> [/reset] [/?]
+            year    指定要校验的年份。
+            /reset  忽略现有基线，按当前云端与本地状态重新建立基线。
+            /?      显示此帮助文档。
+
+        说明：受腾讯文档开放接口限制（导出接口每用户每天仅 9 次），本命令不会下载云端文件，
+        而是将当前云端状态（文档 ID、最后修改时间）与本地状态（文件哈希）同基线清单对比，
+        报告自基线建立以来发生变化的文件。
+        """
+        if args.split(" ")[0] == "/?" or args == "":
+            print(self.do_verify.__doc__)
+            return
+        parts = args.split(" ")
+        year = parts[0]
+        reset = "/reset" in parts[1:]
+        if year not in self.YEARS:
+            print(f"无效的年份: {year}")
+            log(f"无效的年份: {year}", "warning", logfile_only=True)
+            return
+        root_title = os.path.basename(ftfpath)
+        try:
+            root_id = self._cloud_find_folder(None, root_title)
+            if root_id is None:
+                print(f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”")
+                log(f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”", "warning", logfile_only=True)
+                return
+            year_id = self._cloud_find_folder(root_id, year)
+            if year_id is None:
+                print(f"未在腾讯文档云端找到{year}年文件夹")
+                log(f"未在腾讯文档云端找到{year}年文件夹", "warning", logfile_only=True)
+                return
+            cloud_files = {i.get("title"): i for i in self._cloud_list_folder(year_id) if i.get("type") != "folder"}
+        except Exception as e:
+            print(f"访问腾讯文档云端失败: {e}")
+            log(f"访问腾讯文档云端失败: {e}", "error", logfile_only=True)
+            return
+        local_files = {}
+        for path in glob(os.path.join(ftfpath, year, "*.docx")):
+            name = os.path.basename(path)
+            if name.startswith("~$"):
+                continue
+            local_files[os.path.splitext(name)[0]] = path
+        current = {}
+        for title in set(cloud_files) | set(local_files):
+            entry = {}
+            if title in local_files:
+                entry["local_hash"] = self._local_file_hash(local_files[title])
+            if title in cloud_files:
+                entry["cloud_id"] = cloud_files[title].get("ID")
+                entry["cloud_last_modify"] = cloud_files[title].get("lastModifyTime")
+            current[title] = entry
+        manifest = self._load_cloud_manifest()
+        if reset or year not in manifest:
+            manifest[year] = {"baseline_time": int(datetime.datetime.now().timestamp()), "files": current}
+            self._save_cloud_manifest(manifest)
+            if reset:
+                print(f"已按当前云端与本地状态重新建立{year}年的校验基线，本次不做差异判定")
+                log(f"已按当前云端与本地状态重新建立{year}年的校验基线，本次不做差异判定", "info", logfile_only=True)
+            else:
+                print(f"未找到{year}年的校验基线，已按当前云端与本地状态建立基线，本次不做差异判定")
+                log(f"未找到{year}年的校验基线，已按当前云端与本地状态建立基线，本次不做差异判定", "info", logfile_only=True)
+            return
+        baseline = manifest[year].get("files", {})
+        differences = []
+        for title in natsorted(set(baseline) | set(current)):
+            base = baseline.get(title)
+            has_local = title in local_files
+            has_cloud = title in cloud_files
+            if base is None:
+                if has_local and has_cloud:
+                    differences.append(f"{title}: 本地与云端均新增")
+                elif has_local:
+                    differences.append(f"{title}: 本地新增（云端无）")
+                else:
+                    differences.append(f"{title}: 云端新增（本地无）")
+                continue
+            base_has_local = "local_hash" in base
+            base_has_cloud = "cloud_id" in base
+            if not has_local and not has_cloud:
+                differences.append(f"{title}: 云端与本地均已不存在")
+                continue
+            if base_has_local and not has_local:
+                differences.append(f"{title}: 本地文件缺失")
+            elif not base_has_local and has_local:
+                differences.append(f"{title}: 本地新增文件")
+            elif base_has_local and has_local and base.get("local_hash") != current[title].get("local_hash"):
+                differences.append(f"{title}: 本地文件内容已改动")
+            if base_has_cloud and not has_cloud:
+                differences.append(f"{title}: 云端文件缺失")
+            elif not base_has_cloud and has_cloud:
+                differences.append(f"{title}: 云端新增文件")
+            elif base_has_cloud and has_cloud:
+                if base.get("cloud_id") != current[title].get("cloud_id"):
+                    differences.append(f"{title}: 云端文件已被替换（fileID 变化）")
+                elif base.get("cloud_last_modify") != current[title].get("cloud_last_modify"):
+                    differences.append(f"{title}: 云端文件内容已改动")
+        if not differences:
+            print(f"{year}年云端文件与本地文件校验完成，未发现不一致")
+            log(f"{year}年云端文件与本地文件校验完成，未发现不一致", "info", logfile_only=True)
+        else:
+            print(f"{year}年云端文件与本地文件校验完成，共发现{len(differences)}处不一致：")
+            log(f"{year}年云端文件与本地文件校验完成，共发现{len(differences)}处不一致", "warning", logfile_only=True)
+            for difference in differences:
+                print(f"- {difference}")
+                log(f"- {difference}", "info", logfile_only=True)
+
+    def complete_verify(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+        if line.startswith("verify "):
+            return [i for i in self.YEARS if i.startswith(text)]
         return []
 
 def help_ftf_admin():
