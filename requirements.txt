@@ -7,3 +7,4 @@ bcrypt
 psutil
 pyttsx3
 pyautogui
+pyreadline3
