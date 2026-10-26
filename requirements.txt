@@ -1,10 +1,9 @@
-pywinauto
 opencv-python
+requests
 python-docx
 colorama
 natsort
 bcrypt
-psutil
-pyttsx3
 pyautogui
 pyreadline3
+lark-oapi

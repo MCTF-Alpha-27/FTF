@@ -1,3 +1,6 @@
+"""
+《朝花夕拾协议》命令行
+"""
 from cmd import Cmd
 from glob import glob
 from typing import IO, List
@@ -7,7 +10,7 @@ from time import sleep
 from colorama import Fore, init
 from collections import OrderedDict
 from natsort import natsorted
-from .exceptions import *
+from .exceptions import AdminMode, CommandLineExit
 from .functions import log, choice, display_width, pad
 from .config import ftfpath, client_id, access_token, open_id
 
@@ -1044,9 +1047,20 @@ class FTFCmd(Cmd):
         else:
             return options
 
+FOUNDER_HASH = b'$2b$12$aI7vpFUGDjIk0wKLXYSTE./UHK3TDZlH9/XMF7Jbf5dLx5pfEntUi'
+
+def check_founder_key(answer: str) -> bool:
+    """校验创始人密钥（《朝花夕拾协议》的宗旨），命令行与 API 共用。"""
+    if not answer:
+        return False
+    try:
+        return bcrypt.checkpw(answer.encode(), FOUNDER_HASH)
+    except ValueError:
+        return False
+
 def help_ftf():
     FTFCmd.cipher = getpass.getpass("《朝花夕拾协议》的宗旨是？")
-    if not bcrypt.checkpw(FTFCmd.cipher.encode(), b'$2b$12$aI7vpFUGDjIk0wKLXYSTE./UHK3TDZlH9/XMF7Jbf5dLx5pfEntUi'):
+    if not check_founder_key(FTFCmd.cipher):
         return
     for i in range(2):
         os.system("color 0c")

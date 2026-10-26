@@ -1,3 +1,6 @@
+"""
+异常类
+"""
 class TransferTerminalControl(Exception):
     pass
 

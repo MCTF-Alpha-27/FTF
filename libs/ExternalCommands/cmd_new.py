@@ -1,6 +1,9 @@
-from libs.command_lines import *
+import os
 
-cmd_template = """from libs.command_lines import *
+from libs.command_lines import FTFCmd
+from libs.functions import log
+
+cmd_template = """from libs.command_lines import FTFCmd
 
 def {0}(self, cmd: str):
 {1}
