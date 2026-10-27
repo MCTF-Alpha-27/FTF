@@ -5,12 +5,13 @@ import os
 import sys
 
 from colorama import Fore
-from libs import config, listener
-from libs.command_lines import FTFAdminCmd, FTFCmd, help_ftf, help_ftf_admin
-from libs.exceptions import AdminMode, CommandLineExit, ConfigError
-from libs.functions import choice, log
+from libs.Common import config
+from libs.Transport import feishu
+from libs.CLI.ftf_cmd import FTFAdminCmd, FTFCmd, help_ftf, help_ftf_admin
+from libs.Common.exceptions import AdminMode, CommandLineExit, ConfigError
+from libs.Common.functions import choice, log
 
-os.system("title FTF v3.0.0")
+os.system("title FTF v3.1")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -79,6 +80,6 @@ while True:
                     continue
         elif result == 9:
             log("《朝花夕拾协议》监听终端启动", "info", logfile_only=True)
-            listener.main()
+            feishu.start()
         else:
             sys.exit(0)

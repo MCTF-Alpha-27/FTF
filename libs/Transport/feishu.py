@@ -1,7 +1,6 @@
 """
 飞书自建应用传输层
 """
-
 import json
 import os
 import queue
@@ -27,7 +26,8 @@ from lark_oapi.event.callback.model.p2_card_action_trigger import (
     P2CardActionTriggerResponse,
 )
 
-from .functions import log
+from ..Common import config
+from ..Common.functions import log
 from .remote import RemoteTerminal
 
 MAX_SEEN = 200
@@ -83,7 +83,6 @@ def _auth_input_card() -> dict:
         ],
     }
 
-
 def _auth_result_card(ok: bool) -> dict:
     """校验结束后替换原卡片，输入框与密钥一并从卡片中消失"""
     if ok:
@@ -130,6 +129,10 @@ class FeishuTransport(RemoteTerminal):
         self._ws = lark.ws.Client(
             app_id, app_secret, event_handler=self._handler, log_level=lark.LogLevel.INFO
         )
+
+    def conversation_key(self) -> str:
+        """同一飞书会话共享 AI 上下文"""
+        return self._chat_id
 
     def _remember(self, message_id: str) -> None:
         self._seen.append(message_id)
@@ -389,3 +392,41 @@ class FeishuTransport(RemoteTerminal):
         log("正在建立飞书长连接", "info")
         threading.Thread(target=self._ws_loop, name="ftf-feishu-ws", daemon=True).start()
         return self._work()
+
+def start() -> int:
+    if not config.feishu_app_id or config.feishu_app_id.startswith("{"):
+        log("未配置飞书 App ID，请在 config.ini 的 [Feishu] 段填写 app_id", "error")
+        return 1
+    if not config.feishu_app_secret or config.feishu_app_secret.startswith("{"):
+        log("未配置飞书 App Secret，请在 config.ini 的 [Feishu] 段填写 app_secret", "error")
+        return 1
+
+    log("监听终端启动中", "info")
+    if config.feishu_allowed_open_ids:
+        log(f"已配置指令白名单，共{len(config.feishu_allowed_open_ids)}个 open_id", "info")
+    else:
+        log("未配置指令白名单，任何能给机器人发消息的人都可以执行指令", "warning")
+        log("可先发送 /whoami 查看自己的 open_id，再填入 config.ini 的 allowed_open_ids", "warning")
+    if config.ai_enabled:
+        log(f"AI 语义解析已启用，模型 {config.ai_model}", "info")
+    else:
+        log("AI 语义解析未启用，仅响应以 / 开头的指令", "info")
+    log("正在连接到飞书", "info")
+
+    transport = FeishuTransport(
+        config.feishu_app_id,
+        config.feishu_app_secret,
+        config.feishu_allowed_open_ids,
+        config.feishu_encrypt_key,
+        config.feishu_verification_token,
+    )
+    try:
+        result = transport.run()
+    except KeyboardInterrupt:
+        log("监听终端已停止", "info")
+        return 0
+    except Exception as e:
+        log(f"监听终端异常退出: {e}", "error")
+        log("详细信息已写入日志", "exception")
+        return 1
+    return 1 if result == "error" else 0

@@ -10,9 +10,9 @@ from time import sleep
 from colorama import Fore, init
 from collections import OrderedDict
 from natsort import natsorted
-from .exceptions import AdminMode, CommandLineExit
-from .functions import log, choice, display_width, pad
-from .config import ftfpath, client_id, access_token, open_id
+from ..Common.exceptions import AdminMode, CommandLineExit
+from ..Common.functions import log, choice, display_width, pad
+from ..Common.config import ftfpath, client_id, access_token, open_id
 
 import os
 import re
@@ -553,9 +553,12 @@ class FTFCmd(Cmd):
                         total_count_strong += 1
                     if "时期（弱）" in paragraph.text:
                         total_count_weak += 1
-                if not start_count and "常规“时期”" in paragraph.text:
+                if not start_count and ("常规“时期”" in paragraph.text or "被称为“时期”" in paragraph.text):
                     start_count = True
-                    actual_records = int(re.search(r"(\d+)个常规“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个常规“时期”", paragraph.text) else 0
+                    matched_records = re.search(r"(\d+)个常规“时期”", paragraph.text)
+                    if not matched_records:
+                        matched_records = re.search(r"被称为“时期”的有(\d+)个", paragraph.text)
+                    actual_records = int(matched_records.group(1)) if matched_records else 0
                     actual_total_count_strong = int(re.search(r"(\d+)个强“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个强“时期”", paragraph.text) else 0
                     actual_total_count_weak = int(re.search(r"(\d+)个弱“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个弱“时期”", paragraph.text) else 0
             print(f"{self.color}在{year}年的年度总结中共发现{total_count}个常规“时期”")
@@ -889,6 +892,151 @@ class FTFCmd(Cmd):
         if filename.endswith("月.docx"):
             irregularity_count += self._check_event_record(doc.paragraphs, year, filename.split("月")[0])
         return irregularity_count
+
+    @staticmethod
+    def _first_number(text: str, pattern: str) -> int:
+        match = re.search(pattern, text)
+        return int(match.group(1)) if match else 0
+
+    @staticmethod
+    def _split_period(text: str) -> tuple[str, str]:
+        """把“《MyGO》时期（强）”拆成名称与强度；没有强度标注时强度为空"""
+        matched = re.match(r"^(.*?)（(强[^）]*)）", text)
+        if matched:
+            return matched.group(1).strip(), matched.group(2)
+        return text.strip(), ""
+
+    def _period_section(self, paragraphs: list[str], markers: tuple[str, ...]) -> tuple[int, str]:
+        """定位“时期”统计段：返回段落下标与表头，找不到时下标为 -1"""
+        for index, text in enumerate(paragraphs):
+            if "个" in text and any(marker in text for marker in markers):
+                return index, text
+        return -1, ""
+
+    def _period_counts(self, header: str) -> tuple[int, int, int]:
+        """从表头解析总数、强、弱；旧版年度总结没有强弱之分时返回 0"""
+        total_count = self._first_number(header, r"(\d+)个(?:常规|合称)“时期”")
+        if not total_count:
+            total_count = self._first_number(header, r"被称为“时期”的有(\d+)个")
+        total_count_strong = self._first_number(header, r"(\d+)个强“时期”")
+        total_count_weak = self._first_number(header, r"(\d+)个弱“时期”")
+        return total_count, total_count_strong, total_count_weak
+
+    def _list_normal_periods(self, year: str, paragraphs: list[str]):
+        start, header = self._period_section(paragraphs, ("常规“时期”", "被称为“时期”"))
+        if start < 0:
+            print(f"{self.color}{year}年的年度总结中没有找到常规“时期”的统计")
+            log(f"{year}年的年度总结中没有找到常规“时期”的统计", "warning", logfile_only=True)
+            return
+        recorded, total_count_strong, total_count_weak = self._period_counts(header)
+        entries: list[tuple[str, str, str]] = []
+        month = ""
+        for text in paragraphs[start + 1 :]:
+            if not text:
+                break
+            if text[0].isdigit():
+                matched_month = re.search(r"(\d+)月", text)
+                if matched_month:
+                    month = matched_month.group(1)
+                continue
+            name, level = self._split_period(text.split("，")[0])
+            if name:
+                entries.append((month, name, level))
+        detail = (
+            f"（强{total_count_strong}个，弱{total_count_weak}个）"
+            if total_count_strong or total_count_weak
+            else ""
+        )
+        note = "" if recorded == len(entries) else f"，年度总结记录为{recorded}个"
+        print(f"{self.color}{year}年常规“时期”共{len(entries)}个{detail}{note}：")
+        log(
+            f"{year}年常规“时期”共{len(entries)}个{detail}{note}",
+            "info",
+            logfile_only=True,
+        )
+        for month, name, level in entries:
+            prefix = f"{month}月: " if month else ""
+            label = f"（{level}）" if level else ""
+            print(f"{self.color}  {prefix}{name}{label}")
+            log(f"{year}年常规“时期”: {prefix}{name}{label}", "info", logfile_only=True)
+
+    def _list_combined_periods(self, year: str, paragraphs: list[str]):
+        start, header = self._period_section(paragraphs, ("合称“时期”",))
+        if start < 0:
+            print(f"{self.color}{year}年的年度总结中没有找到合称“时期”的统计")
+            log(f"{year}年的年度总结中没有找到合称“时期”的统计", "warning", logfile_only=True)
+            return
+        recorded, total_count_strong, total_count_weak = self._period_counts(header)
+        entries: list[tuple[str, str, str]] = []
+        for text in paragraphs[start + 1 :]:
+            if not text:
+                break
+            matched_range = re.match(r"^(\d+~\d+月)", text)
+            if not matched_range:
+                continue
+            months = matched_range.group(1)
+            rest = text[len(months) :].lstrip("：: ")
+            if rest.startswith("合称为"):
+                # 2023 及更早的写法：1~6月合称为“初三时期”
+                name = rest[len("合称为") :].strip("“” ")
+                level = ""
+            else:
+                name, level = self._split_period(rest.split("，")[0])
+            if name:
+                entries.append((months, name, level))
+        detail = (
+            f"（强{total_count_strong}个，弱{total_count_weak}个）"
+            if total_count_strong or total_count_weak
+            else ""
+        )
+        note = "" if recorded == len(entries) else f"，年度总结记录为{recorded}个"
+        print(f"{self.color}{year}年合称“时期”共{len(entries)}个{detail}{note}：")
+        log(
+            f"{year}年合称“时期”共{len(entries)}个{detail}{note}",
+            "info",
+            logfile_only=True,
+        )
+        for months, name, level in entries:
+            label = f"（{level}）" if level else ""
+            print(f"{self.color}  {months}: {name}{label}")
+            log(f"{year}年合称“时期”: {months}: {name}{label}", "info", logfile_only=True)
+
+    def do_periods(self, args: str):
+        """
+        列出年度总结中的“时期”名称。
+
+        语法：periods <year> [normal | combined] [/?]
+            year        年度总结所属的年份。
+            normal      只列出常规“时期”。
+            combined    只列出合称“时期”。
+            /?          显示此帮助文档。
+        """
+        parts = args.split()
+        if not parts or parts[0] == "/?":
+            print(self.color + self.do_periods.__doc__)
+            return
+        year = parts[0]
+        kind = parts[1] if len(parts) > 1 else ""
+        if kind not in ("", "normal", "combined"):
+            print(self.color + self.do_periods.__doc__)
+            return
+        document_path = os.path.join(ftfpath, year, "年度总结.docx")
+        if not os.path.exists(document_path):
+            print(f"{self.color}未找到{year}年的年度总结")
+            log(f"未找到{year}年的年度总结", "warning", logfile_only=True)
+            return
+        paragraphs = [p.text.strip() for p in Document(document_path).paragraphs]
+        if kind in ("", "normal"):
+            self._list_normal_periods(year, paragraphs)
+        if kind in ("", "combined"):
+            self._list_combined_periods(year, paragraphs)
+
+    def complete_periods(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+        if line.startswith("periods "):
+            if " " in line[len("periods ") :]:
+                return [i for i in ("normal", "combined") if i.startswith(text)]
+            return [i for i in self.YEARS if i.startswith(text)]
+        return []
 
     def do_check(self, args: str):
         """

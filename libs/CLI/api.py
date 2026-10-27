@@ -1,11 +1,11 @@
 """
 《朝花夕拾协议》命令行 API
 
-把 libs/command_lines.py 中的命令行命令封装为可直接调用的函数，
+把 libs/CLI/ftf_cmd.py 中的命令行命令封装为可直接调用的函数，
 供远程终端、AI 集成或其它脚本使用
 
 用法示例：
-    from libs.api import TerminalAPI
+    from libs.CLI.api import TerminalAPI
 
     terminal = TerminalAPI()                 # 默认只有公开命令权限
     result = terminal.run("find 愿望 in year 2025")
@@ -28,20 +28,14 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Iterator
 
-from libs.command_lines import FTFAdminCmd, FTFCmd, check_founder_key
-from libs.exceptions import AdminMode, CommandLineExit
+from ..Common.exceptions import AdminMode, CommandLineExit, ConfirmationRequired
+from . import ftf_cmd
+from .ftf_cmd import FTFAdminCmd, FTFCmd, check_founder_key
 
 _ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 
 # 这些命令不提供 API 封装：open 依赖本机 GUI，exit 仅用于关闭命令行会话
 _NOT_API = {"open", "exit"}
-
-class ConfirmationRequired(Exception):
-    """命令执行到需要人工确认的步骤时抛出，由调用方决定确认或取消"""
-
-    def __init__(self, question: str) -> None:
-        super().__init__(question)
-        self.question = question
 
 @dataclass(slots=True)
 class CommandResult:
@@ -279,9 +273,7 @@ class TerminalAPI:
         answer=True  自动确认；answer=False 自动取消；
         answer=None  抛出 ConfirmationRequired，把确认交回调用方
         """
-        import libs.command_lines as command_lines
-
-        original = command_lines.choice
+        original = ftf_cmd.choice
 
         if answer is None:
 
@@ -294,11 +286,11 @@ class TerminalAPI:
             def ask(choose="YN", text="Y/N", default=None, timeout=10, *, hide=False):
                 return value
 
-        command_lines.choice = ask
+        ftf_cmd.choice = ask
         try:
             yield
         finally:
-            command_lines.choice = original
+            ftf_cmd.choice = original
 
 # 模块级默认实例：默认只有公开命令权限，需 authenticate() 后才有创始人权限
 terminal = TerminalAPI()

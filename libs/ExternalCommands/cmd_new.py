@@ -1,9 +1,9 @@
 import os
 
-from libs.command_lines import FTFCmd
-from libs.functions import log
+from libs.CLI.ftf_cmd import FTFCmd
+from libs.Common.functions import log
 
-cmd_template = """from libs.command_lines import FTFCmd
+cmd_template = """from libs.CLI.ftf_cmd import FTFCmd
 
 def {0}(self, cmd: str):
 {1}
