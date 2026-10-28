@@ -18,6 +18,7 @@
     if result.needs_confirmation:
         result = terminal.upload("2026/10", answer=True)  # False 表示取消
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -28,14 +29,19 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Iterator
 
-from ..Common.exceptions import AdminMode, CommandLineExit, ConfirmationRequired
-from . import ftf_cmd
-from .ftf_cmd import FTFAdminCmd, FTFCmd, check_founder_key
+from libs.CLI import ftf_cmd
+from libs.CLI.ftf_cmd import FTFAdminCmd, FTFCmd, check_founder_key
+from libs.Common.exceptions import (
+    AdminMode,
+    CommandLineExit,
+    ConfirmationRequired,
+)
 
 _ANSI_PATTERN = re.compile(r"\x1b\[[0-9;]*m")
 
 # 这些命令不提供 API 封装：open 依赖本机 GUI，exit 仅用于关闭命令行会话
 _NOT_API = {"open", "exit"}
+
 
 @dataclass(slots=True)
 class CommandResult:
@@ -61,6 +67,7 @@ class CommandResult:
             "question": self.question,
         }
 
+
 @dataclass(slots=True)
 class CommandInfo:
     """命令的描述信息，用于构建 AI 工具清单"""
@@ -77,6 +84,7 @@ class CommandInfo:
             "syntax": self.syntax,
             "doc": self.doc,
         }
+
 
 class TerminalAPI:
     """命令行命令的 API 封装
@@ -135,7 +143,9 @@ class TerminalAPI:
                 (line for line in lines if line.startswith("语法：")),
                 "",
             )
-            infos.append(CommandInfo(name=name, summary=summary, syntax=syntax, doc=doc))
+            infos.append(
+                CommandInfo(name=name, summary=summary, syntax=syntax, doc=doc)
+            )
         return infos
 
     def help(self, name: str) -> str:
@@ -145,7 +155,9 @@ class TerminalAPI:
             return ""
         return inspect.getdoc(handler) or ""
 
-    def run(self, command: str, *, answer: bool | None = None) -> CommandResult:
+    def run(
+        self, command: str, *, answer: bool | None = None
+    ) -> CommandResult:
         """执行一条完整的命令行指令，例如 run("find 愿望 in year 2025")"""
         command = command.strip()
         if command.startswith("/"):
@@ -155,7 +167,9 @@ class TerminalAPI:
         name, _, args = command.partition(" ")
         return self.call(name, args, answer=answer)
 
-    def call(self, name: str, *args: Any, answer: bool | None = None) -> CommandResult:
+    def call(
+        self, name: str, *args: Any, answer: bool | None = None
+    ) -> CommandResult:
         """按命令名调用，参数可传多个字符串或一个字符串/列表
 
         call("find", "愿望", "in", "year", "2025")
@@ -173,7 +187,9 @@ class TerminalAPI:
 
         handler = getattr(self.terminal, f"do_{name}", None)
         if not name or handler is None or not callable(handler):
-            return CommandResult(command=line, ok=False, error=f"没有此命令: {name}")
+            return CommandResult(
+                command=line, ok=False, error=f"没有此命令: {name}"
+            )
 
         buffer = io.StringIO()
         with self._lock:
@@ -210,7 +226,9 @@ class TerminalAPI:
                     error=f"{type(e).__name__}: {e}",
                 )
 
-        return CommandResult(command=line, ok=True, output=self._clean(buffer.getvalue()))
+        return CommandResult(
+            command=line, ok=True, output=self._clean(buffer.getvalue())
+        )
 
     def find(self, *args: Any, answer: bool | None = None) -> CommandResult:
         """查找文档中的关键字词。语法：find <keywords> in <范围>"""
@@ -224,7 +242,9 @@ class TerminalAPI:
         """检查事件记录文档及年度总结的格式规范性。语法：check <years>"""
         return self.call("check", *args, answer=answer)
 
-    def calculate(self, *args: Any, answer: bool | None = None) -> CommandResult:
+    def calculate(
+        self, *args: Any, answer: bool | None = None
+    ) -> CommandResult:
         """计算“时期”的强度"""
         return self.call("calculate", *args, answer=answer)
 
@@ -232,7 +252,9 @@ class TerminalAPI:
         """删除日志文件（创始人命令）。语法：dellog <logname/*>"""
         return self.call("dellog", *args, answer=answer)
 
-    def listfiles(self, *args: Any, answer: bool | None = None) -> CommandResult:
+    def listfiles(
+        self, *args: Any, answer: bool | None = None
+    ) -> CommandResult:
         """列出指定年份的云端文件（创始人命令）。语法：listfiles <year>"""
         return self.call("listfiles", *args, answer=answer)
 
@@ -277,13 +299,27 @@ class TerminalAPI:
 
         if answer is None:
 
-            def ask(choose="YN", text="Y/N", default=None, timeout=10, *, hide=False):
+            def ask(
+                choose="YN",
+                text="Y/N",
+                default=None,
+                timeout=10,
+                *,
+                hide=False,
+            ):
                 raise ConfirmationRequired(text)
 
         else:
             value = 1 if answer else 2
 
-            def ask(choose="YN", text="Y/N", default=None, timeout=10, *, hide=False):
+            def ask(
+                choose="YN",
+                text="Y/N",
+                default=None,
+                timeout=10,
+                *,
+                hide=False,
+            ):
                 return value
 
         ftf_cmd.choice = ask
@@ -292,60 +328,75 @@ class TerminalAPI:
         finally:
             ftf_cmd.choice = original
 
+
 # 模块级默认实例：默认只有公开命令权限，需 authenticate() 后才有创始人权限
 terminal = TerminalAPI()
+
 
 def run(command: str, *, answer: bool | None = None) -> CommandResult:
     """执行一条完整的命令行指令"""
     return terminal.run(command, answer=answer)
 
+
 def authenticate(key: str) -> bool:
     """用《朝花夕拾协议》的宗旨校验创始人权限"""
     return terminal.authenticate(key)
+
 
 def is_admin() -> bool:
     """当前是否已通过创始人密钥校验"""
     return terminal.admin
 
+
 def commands() -> list[str]:
     """返回可用命令名列表"""
     return terminal.commands()
+
 
 def describe() -> list[CommandInfo]:
     """返回全部命令的描述信息"""
     return terminal.describe()
 
+
 def help_command(name: str) -> str:
     """返回指定命令的帮助文档（命令名可为 help 子命令，如 verify）"""
     return terminal.help(name)
+
 
 def find(*args: Any, answer: bool | None = None) -> CommandResult:
     """查找文档中的关键字词"""
     return terminal.find(*args, answer=answer)
 
+
 def count(*args: Any, answer: bool | None = None) -> CommandResult:
     """统计年度总结中的新事物/重大事件或“时期”数量"""
     return terminal.count(*args, answer=answer)
+
 
 def check(*args: Any, answer: bool | None = None) -> CommandResult:
     """检查事件记录文档及年度总结的格式规范性"""
     return terminal.check(*args, answer=answer)
 
+
 def calculate(*args: Any, answer: bool | None = None) -> CommandResult:
     """计算“时期”的强度"""
     return terminal.calculate(*args, answer=answer)
+
 
 def dellog(*args: Any, answer: bool | None = None) -> CommandResult:
     """删除日志文件（创始人命令）"""
     return terminal.dellog(*args, answer=answer)
 
+
 def listfiles(*args: Any, answer: bool | None = None) -> CommandResult:
     """列出指定年份的云端文件（创始人命令）"""
     return terminal.listfiles(*args, answer=answer)
 
+
 def verify(*args: Any, answer: bool | None = None) -> CommandResult:
     """校验云端文件与本地文件是否一致（创始人命令）"""
     return terminal.verify(*args, answer=answer)
+
 
 def upload(*args: Any, answer: bool | None = None) -> CommandResult:
     """上传本地文档到云端（创始人命令）"""

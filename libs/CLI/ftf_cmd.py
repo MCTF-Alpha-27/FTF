@@ -1,6 +1,7 @@
 """
 《朝花夕拾协议》命令行
 """
+
 from cmd import Cmd
 from glob import glob
 from typing import IO, List
@@ -10,9 +11,9 @@ from time import sleep
 from colorama import Fore, init
 from collections import OrderedDict
 from natsort import natsorted
-from ..Common.exceptions import AdminMode, CommandLineExit
-from ..Common.functions import log, choice, display_width, pad
-from ..Common.config import ftfpath, client_id, access_token, open_id
+from libs.Common.config import ftfpath, client_id, access_token, open_id
+from libs.Common.exceptions import AdminMode, CommandLineExit
+from libs.Common.functions import log, choice, display_width, pad
 
 import os
 import re
@@ -27,11 +28,13 @@ import requests
 
 init()
 
+
 def loadcmd():
     for i in glob("libs\\ExternalCommands\\cmd_*.py"):
         plugin_file_name = i.replace("\\", ".")[0:-3]
         log("External Commands: " + plugin_file_name, "debug")
         importlib.import_module(plugin_file_name)
+
 
 class FTFCmd(Cmd):
     intro = "欢迎使用《朝花夕拾协议》命令行\n"
@@ -41,21 +44,48 @@ class FTFCmd(Cmd):
     misc_header = "其它帮助命令:"
     nohelp = "没有找到%s命令的帮助文档，也许这个命令有显示自己帮助文档的参数，试试输入<命令> /?来查看它们"
 
-    def __init__(self, completekey: str = "tab", stdin: IO[str] | None = None, stdout: IO[str] | None = None) -> None:
+    def __init__(
+        self,
+        completekey: str = "tab",
+        stdin: IO[str] | None = None,
+        stdout: IO[str] | None = None,
+    ) -> None:
         super().__init__(completekey, stdin, stdout)
-        self.YEARS = natsorted(i for i in os.listdir(ftfpath) if os.path.isdir(os.path.join(ftfpath, i)))
+        self.YEARS = natsorted(
+            i
+            for i in os.listdir(ftfpath)
+            if os.path.isdir(os.path.join(ftfpath, i))
+        )
         self.color = Fore.LIGHTGREEN_EX
         self.POSITIVE_LEVELS = ("高", "中", "低")
         self.NEGATIVE_LEVELS = ("严重", "中", "轻微")
         self.POSITIVE_ASSESS = ("积极一", "积极二", "积极三")
         self.NEGATIVE_ASSESS = ("消极一", "消极二", "消极三")
-        self.WEEKLY_JUDGMENT = ("糟糕的一周", "平平无奇的一周", "标准的一周", "杰出的一周", "优秀的一周")
-        self.MONTHLY_JUDGMENT = ("糟糕的一个月", "平平无奇的一个月", "标准的一个月", "杰出的一个月", "优秀的一个月")
-        self.YEARLY_JUDGMENT = ("糟糕的一年", "平平无奇的一年", "标准的一年", "杰出的一年", "优秀的一年")
+        self.WEEKLY_JUDGMENT = (
+            "糟糕的一周",
+            "平平无奇的一周",
+            "标准的一周",
+            "杰出的一周",
+            "优秀的一周",
+        )
+        self.MONTHLY_JUDGMENT = (
+            "糟糕的一个月",
+            "平平无奇的一个月",
+            "标准的一个月",
+            "杰出的一个月",
+            "优秀的一个月",
+        )
+        self.YEARLY_JUDGMENT = (
+            "糟糕的一年",
+            "平平无奇的一年",
+            "标准的一年",
+            "杰出的一年",
+            "优秀的一年",
+        )
 
     def emptyline(self):
         return
-    
+
     def preloop(self) -> None:
         os.system("cls")
         loadcmd()
@@ -71,10 +101,20 @@ class FTFCmd(Cmd):
         except Exception as e:
             if isinstance(e, AdminMode) or isinstance(e, CommandLineExit):
                 raise e
-            print(f"{self.color}{Fore.LIGHTRED_EX}{e.__class__.__name__}: {str(e)}")
-            log(f"{e.__class__.__name__}: {str(e)}", "error", logfile_only=True)
-            print(f"{self.color}{Fore.LIGHTRED_EX}运行时发生错误，详细信息已被写入日志")
-            log("运行时发生错误，详细信息已被写入日志", "exception", logfile_only=True)
+            print(
+                f"{self.color}{Fore.LIGHTRED_EX}{e.__class__.__name__}: {str(e)}"
+            )
+            log(
+                f"{e.__class__.__name__}: {str(e)}", "error", logfile_only=True
+            )
+            print(
+                f"{self.color}{Fore.LIGHTRED_EX}运行时发生错误，详细信息已被写入日志"
+            )
+            log(
+                "运行时发生错误，详细信息已被写入日志",
+                "exception",
+                logfile_only=True,
+            )
             return False
         return callback
 
@@ -90,12 +130,16 @@ class FTFCmd(Cmd):
             print(self.color + self.do_exit.__doc__)
             return
         raise CommandLineExit()
-    
+
     def _find(self, document: str, keywords: set[str], count: int) -> int:
         if os.path.basename(document).startswith("~$"):
             return count
         doc = Document(document)
-        document_friendly_name = document.split("\\")[-2] + "/" + document.split("\\")[-1].removesuffix(".docx")
+        document_friendly_name = (
+            document.split("\\")[-2]
+            + "/"
+            + document.split("\\")[-1].removesuffix(".docx")
+        )
         line = 0
         first_month_span = None
         second_month_span = None
@@ -108,8 +152,14 @@ class FTFCmd(Cmd):
                 elif not second_month_span:
                     second_month_span = line
                 else:
-                    print(f"{self.color}在{document_friendly_name}中发现两个以上的跨月或跨年事件，请检查文档")
-                    log(f"在{document_friendly_name}中发现两个以上的跨月或跨年事件，请检查文档", "warning", logfile_only=True)
+                    print(
+                        f"{self.color}在{document_friendly_name}中发现两个以上的跨月或跨年事件，请检查文档"
+                    )
+                    log(
+                        f"在{document_friendly_name}中发现两个以上的跨月或跨年事件，请检查文档",
+                        "warning",
+                        logfile_only=True,
+                    )
                     return count
         line = 0
         for paragraph in doc.paragraphs:
@@ -120,109 +170,208 @@ class FTFCmd(Cmd):
                         tag = None
                         if keyword != "跨月":
                             if first_month_span:
-                                if line < first_month_span and first_month_span < half_length:
+                                if (
+                                    line < first_month_span
+                                    and first_month_span < half_length
+                                ):
                                     tag = "上跨月"
                                     colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{self.color}"
                                     self.has_upper_part = True
-                                elif line > first_month_span and first_month_span > half_length:
+                                elif (
+                                    line > first_month_span
+                                    and first_month_span > half_length
+                                ):
                                     tag = "下跨月"
                                     colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
                                     self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
-                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
+                                colored_tag = (
+                                    f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
+                                )
                                 self.has_lower_part = True
                         if tag:
-                            print(f"{self.color}{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                            log(f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}"
+                            )
+                            log(
+                                f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}",
+                                "info",
+                                logfile_only=True,
+                            )
                         else:
-                            print(f"{self.color}{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}"
+                            )
+                            log(
+                                f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-6]}的项（从整个字符串中搜索匹配项） -> {paragraph.text}",
+                                "info",
+                                logfile_only=True,
+                            )
                         count += 1
                 elif keyword.startswith("/") and keyword.endswith("/match"):
                     if re.match(keyword[1:-6], paragraph.text):
                         tag = None
                         if keyword != "跨月":
                             if first_month_span:
-                                if line < first_month_span and first_month_span < half_length:
+                                if (
+                                    line < first_month_span
+                                    and first_month_span < half_length
+                                ):
                                     tag = "上跨月"
                                     colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{self.color}"
                                     self.has_upper_part = True
-                                elif line > first_month_span and first_month_span > half_length:
+                                elif (
+                                    line > first_month_span
+                                    and first_month_span > half_length
+                                ):
                                     tag = "下跨月"
                                     colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
                                     self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
-                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
+                                colored_tag = (
+                                    f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
+                                )
                                 self.has_lower_part = True
                         if tag:
-                            print(f"{self.color}{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                            log(f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}"
+                            )
+                            log(
+                                f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}",
+                                "info",
+                                logfile_only=True,
+                            )
                         else:
-                            print(f"{self.color}{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}"
+                            )
+                            log(
+                                f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到符合正则表达式{keyword[0:-5]}的项（从字符串开头匹配） -> {paragraph.text}",
+                                "info",
+                                logfile_only=True,
+                            )
                         count += 1
                 elif "&" in keyword:
                     if all(i in paragraph.text for i in keyword.split("&")):
                         tag = None
                         if keyword != "跨月":
                             if first_month_span:
-                                if line < first_month_span and first_month_span < half_length:
+                                if (
+                                    line < first_month_span
+                                    and first_month_span < half_length
+                                ):
                                     tag = "上跨月"
                                     colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{self.color}"
                                     self.has_upper_part = True
-                                elif line > first_month_span and first_month_span > half_length:
+                                elif (
+                                    line > first_month_span
+                                    and first_month_span > half_length
+                                ):
                                     tag = "下跨月"
                                     colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
                                     self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
-                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
+                                colored_tag = (
+                                    f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
+                                )
                                 self.has_lower_part = True
                         if tag:
-                            print(f"{self.color}{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
-                            log(f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}"
+                            )
+                            log(
+                                f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}",
+                                "info",
+                                logfile_only=True,
+                            )
                         else:
-                            print(f"{self.color}{count + 1}. 在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{count + 1}. 在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}"
+                            )
+                            log(
+                                f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到同时包含关键字词“{','.join(keyword.split('&'))}”的项 -> {paragraph.text}",
+                                "info",
+                                logfile_only=True,
+                            )
                         count += 1
                 else:
                     if keyword in paragraph.text:
                         tag = None
                         if keyword != "跨月":
                             if first_month_span:
-                                if line < first_month_span and first_month_span < half_length:
+                                if (
+                                    line < first_month_span
+                                    and first_month_span < half_length
+                                ):
                                     tag = "上跨月"
                                     colored_tag = f"{Fore.LIGHTBLUE_EX}[{tag}]{self.color}"
                                     self.has_upper_part = True
-                                elif line > first_month_span and first_month_span > half_length:
+                                elif (
+                                    line > first_month_span
+                                    and first_month_span > half_length
+                                ):
                                     tag = "下跨月"
                                     colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
                                     self.has_lower_part = True
                             if second_month_span and line > second_month_span:
                                 tag = "下跨月"
-                                colored_tag = f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
+                                colored_tag = (
+                                    f"{Fore.LIGHTYELLOW_EX}[{tag}]{self.color}"
+                                )
                                 self.has_lower_part = True
                         if tag:
-                            print(f"{self.color}{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                            log(f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{count + 1}. {colored_tag}在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}"
+                            )
+                            log(
+                                f"{count + 1}. [{tag}]在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}",
+                                "info",
+                                logfile_only=True,
+                            )
                         else:
-                            print(f"{self.color}{count + 1}. 在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}")
-                            log(f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{count + 1}. 在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}"
+                            )
+                            log(
+                                f"{count + 1}. 在{document_friendly_name}第{line}个段落中找到关键字词: {keyword} -> {paragraph.text}",
+                                "info",
+                                logfile_only=True,
+                            )
                         count += 1
         return count
 
     def _check_month_span(self):
         if self.has_upper_part or self.has_lower_part:
-            print(self.color + "注意：查询涉及的文档中检测到跨月或跨年事件，请注意核实查询结果的事件所属月份")
-            log("注意：查询涉及的文档中检测到跨月或跨年事件，请注意核实查询结果的事件所属月份", "info", logfile_only=True)
+            print(
+                self.color
+                + "注意：查询涉及的文档中检测到跨月或跨年事件，请注意核实查询结果的事件所属月份"
+            )
+            log(
+                "注意：查询涉及的文档中检测到跨月或跨年事件，请注意核实查询结果的事件所属月份",
+                "info",
+                logfile_only=True,
+            )
             if self.has_upper_part:
-                print(f"{self.color}{Fore.LIGHTBLUE_EX}[上跨月]{self.color}表示该事件属于查询结果所示文档的上个月")
-                log("[上跨月]表示该事件属于查询结果所示文档的上个月", "info", logfile_only=True)
+                print(
+                    f"{self.color}{Fore.LIGHTBLUE_EX}[上跨月]{self.color}表示该事件属于查询结果所示文档的上个月"
+                )
+                log(
+                    "[上跨月]表示该事件属于查询结果所示文档的上个月",
+                    "info",
+                    logfile_only=True,
+                )
             if self.has_lower_part:
-                print(f"{self.color}{Fore.LIGHTYELLOW_EX}[下跨月]{self.color}表示该事件属于查询结果所示文档的下个月")
-                log("[下跨月]表示该事件属于查询结果所示文档的下个月", "info", logfile_only=True)
+                print(
+                    f"{self.color}{Fore.LIGHTYELLOW_EX}[下跨月]{self.color}表示该事件属于查询结果所示文档的下个月"
+                )
+                log(
+                    "[下跨月]表示该事件属于查询结果所示文档的下个月",
+                    "info",
+                    logfile_only=True,
+                )
 
     def do_find(self, args: str):
         """
@@ -253,7 +402,9 @@ class FTFCmd(Cmd):
         self.has_upper_part = False
         self.has_lower_part = False
         keywords = set(args.split(" in ")[0].split(" "))
-        documents = list(OrderedDict.fromkeys(args.split(" in ")[1].split(" ")).keys())
+        documents = list(
+            OrderedDict.fromkeys(args.split(" in ")[1].split(" ")).keys()
+        )
         if documents[0] == "*":
             count = 0
             for year in self.YEARS:
@@ -262,7 +413,11 @@ class FTFCmd(Cmd):
                     count = self._find(document, keywords, count)
             self._check_month_span()
             print(f"{self.color}在所有文档中共发现{count}个关键字词\n")
-            log(f"在所有文档中共发现{count}个关键字词", "info", logfile_only=True)
+            log(
+                f"在所有文档中共发现{count}个关键字词",
+                "info",
+                logfile_only=True,
+            )
             log("", "info", logfile_only=True)
         elif documents[0] == "year":
             years = documents[1:]
@@ -272,16 +427,28 @@ class FTFCmd(Cmd):
                     start_year, end_year = year.split("~")
                     if not start_year.isdigit() or not end_year.isdigit():
                         print(f"{self.color}无效的年份范围: {year}")
-                        log(f"无效的年份范围: {year}", "warning", logfile_only=True)
+                        log(
+                            f"无效的年份范围: {year}",
+                            "warning",
+                            logfile_only=True,
+                        )
                         years.remove(year)
                         continue
                     start_year, end_year = int(start_year), int(end_year)
                     if start_year > end_year:
-                        print(f"{self.color}无效的年份范围: {year}（起始年份大于结束年份）")
-                        log(f"无效的年份范围: {year}（起始年份大于结束年份）", "warning", logfile_only=True)
+                        print(
+                            f"{self.color}无效的年份范围: {year}（起始年份大于结束年份）"
+                        )
+                        log(
+                            f"无效的年份范围: {year}（起始年份大于结束年份）",
+                            "warning",
+                            logfile_only=True,
+                        )
                         years.remove(year)
                         continue
-                    deduplicated_year.update(str(i) for i in range(start_year, end_year + 1))
+                    deduplicated_year.update(
+                        str(i) for i in range(start_year, end_year + 1)
+                    )
                 else:
                     deduplicated_year.add(year)
             deduplicated_year = natsorted(deduplicated_year)
@@ -289,14 +456,24 @@ class FTFCmd(Cmd):
             for year in deduplicated_year:
                 if year not in self.YEARS:
                     print(f"{self.color}未找到{year}年的事件记录文档")
-                    log(f"未找到{year}年的事件记录文档", "warning", logfile_only=True)
+                    log(
+                        f"未找到{year}年的事件记录文档",
+                        "warning",
+                        logfile_only=True,
+                    )
                     continue
                 docments_path = os.path.join(ftfpath, year)
                 for document in natsorted(glob(f"{docments_path}\\*.docx")):
                     count = self._find(document, keywords, count)
             self._check_month_span()
-            print(f"{self.color}在{', '.join(years)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词\n")
-            log(f"在{', '.join(years)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+            print(
+                f"{self.color}在{', '.join(years)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词\n"
+            )
+            log(
+                f"在{', '.join(years)}这{len(deduplicated_year)}年的事件记录文档中共发现{count}个关键字词",
+                "info",
+                logfile_only=True,
+            )
             log("", "info", logfile_only=True)
         elif documents[0] == "month":
             months = documents[1:]
@@ -306,21 +483,39 @@ class FTFCmd(Cmd):
                     start_month, end_month = month.split("~")
                     if not start_month.isdigit() or not end_month.isdigit():
                         print(f"{self.color}无效的月份范围: {month}")
-                        log(f"无效的月份范围: {month}", "warning", logfile_only=True)
+                        log(
+                            f"无效的月份范围: {month}",
+                            "warning",
+                            logfile_only=True,
+                        )
                         months.remove(month)
                         continue
                     start_month, end_month = int(start_month), int(end_month)
                     if start_month > end_month:
-                        print(f"{self.color}无效的月份范围: {month}（起始月份大于结束月份）")
-                        log(f"无效的月份范围: {month}（起始月份大于结束月份）", "warning", logfile_only=True)
+                        print(
+                            f"{self.color}无效的月份范围: {month}（起始月份大于结束月份）"
+                        )
+                        log(
+                            f"无效的月份范围: {month}（起始月份大于结束月份）",
+                            "warning",
+                            logfile_only=True,
+                        )
                         months.remove(month)
                         continue
                     if start_month < 1 or end_month > 12:
-                        print(f"{self.color}无效的月份范围: {month}（月份应在1到12之间）")
-                        log(f"无效的月份范围: {month}（月份应在1到12之间）", "warning", logfile_only=True)
+                        print(
+                            f"{self.color}无效的月份范围: {month}（月份应在1到12之间）"
+                        )
+                        log(
+                            f"无效的月份范围: {month}（月份应在1到12之间）",
+                            "warning",
+                            logfile_only=True,
+                        )
                         months.remove(month)
                         continue
-                    deduplicated_month.update(str(i) for i in range(start_month, end_month + 1))
+                    deduplicated_month.update(
+                        str(i) for i in range(start_month, end_month + 1)
+                    )
                 else:
                     deduplicated_month.add(month)
             deduplicated_month = natsorted(deduplicated_month)
@@ -329,17 +524,35 @@ class FTFCmd(Cmd):
                 for month in deduplicated_month:
                     if month not in [str(i) for i in range(1, 13)]:
                         print(f"{self.color}无效的月份: {month}月")
-                        log(f"无效的月份: {month}月", "warning", logfile_only=True)
+                        log(
+                            f"无效的月份: {month}月",
+                            "warning",
+                            logfile_only=True,
+                        )
                         continue
-                    docments_path = os.path.join(ftfpath, year, f"{month}月.docx")
+                    docments_path = os.path.join(
+                        ftfpath, year, f"{month}月.docx"
+                    )
                     if not os.path.exists(docments_path):
-                        print(f"{self.color}未找到{year}年{month}月的事件记录文档")
-                        log(f"未找到{year}年{month}月的事件记录文档", "warning", logfile_only=True)
+                        print(
+                            f"{self.color}未找到{year}年{month}月的事件记录文档"
+                        )
+                        log(
+                            f"未找到{year}年{month}月的事件记录文档",
+                            "warning",
+                            logfile_only=True,
+                        )
                         continue
                     count = self._find(docments_path, keywords, count)
             self._check_month_span()
-            print(f"{self.color}在{', '.join(months)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词\n")
-            log(f"在{', '.join(months)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+            print(
+                f"{self.color}在{', '.join(months)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词\n"
+            )
+            log(
+                f"在{', '.join(months)}月这{len(deduplicated_month)}个月的事件记录文档中共发现{count}个关键字词",
+                "info",
+                logfile_only=True,
+            )
             log("", "info", logfile_only=True)
         elif documents[0] == "only":
             count = 0
@@ -353,39 +566,75 @@ class FTFCmd(Cmd):
                     document.remove(i)
                     continue
                 if i.split("/")[1] == "annual_summary":
-                    docments_path = os.path.join(ftfpath, i.split("/")[0], "年度总结.docx")
+                    docments_path = os.path.join(
+                        ftfpath, i.split("/")[0], "年度总结.docx"
+                    )
                     annual_summary_count += 1
                 else:
-                    docments_path = os.path.join(ftfpath, i.split("/")[0], f"{i.split('/')[1]}月.docx")
+                    docments_path = os.path.join(
+                        ftfpath, i.split("/")[0], f"{i.split('/')[1]}月.docx"
+                    )
                     normal_count += 1
                 if not os.path.exists(docments_path):
                     if i.split("/")[1] == "annual_summary":
-                        print(f"{self.color}未找到{i.split('/')[0]}年的年度总结")
-                        log(f"未找到{i.split('/')[0]}年的年度总结", "warning", logfile_only=True)
+                        print(
+                            f"{self.color}未找到{i.split('/')[0]}年的年度总结"
+                        )
+                        log(
+                            f"未找到{i.split('/')[0]}年的年度总结",
+                            "warning",
+                            logfile_only=True,
+                        )
                     else:
                         print(f"{self.color}未找到{i}的事件记录文档")
-                        log(f"未找到{i}的事件记录文档", "warning", logfile_only=True)
+                        log(
+                            f"未找到{i}的事件记录文档",
+                            "warning",
+                            logfile_only=True,
+                        )
                     continue
                 count = self._find(docments_path, keywords, count)
             self._check_month_span()
             if annual_summary_count > 0 and normal_count > 0:
-                print(f"{self.color}在{', '.join(document)}这{normal_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词\n")
-                log(f"在{', '.join(document)}这{normal_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词", "info", logfile_only=True)
+                print(
+                    f"{self.color}在{', '.join(document)}这{normal_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词\n"
+                )
+                log(
+                    f"在{', '.join(document)}这{normal_count}个事件记录文档以及{annual_summary_count}个年度总结中共发现{count}个关键字词",
+                    "info",
+                    logfile_only=True,
+                )
             elif annual_summary_count > 0 and normal_count == 0:
-                print(f"{self.color}在{', '.join(document)}这{annual_summary_count}个年度总结中共发现{count}个关键字词\n")
-                log(f"在{', '.join(document)}这{annual_summary_count}个年度总结中共发现{count}个关键字词", "info", logfile_only=True)
+                print(
+                    f"{self.color}在{', '.join(document)}这{annual_summary_count}个年度总结中共发现{count}个关键字词\n"
+                )
+                log(
+                    f"在{', '.join(document)}这{annual_summary_count}个年度总结中共发现{count}个关键字词",
+                    "info",
+                    logfile_only=True,
+                )
             else:
-                print(f"{self.color}在{', '.join(document)}这{len(document)}个事件记录文档中共发现{count}个关键字词\n")
-                log(f"在{', '.join(document)}这{len(document)}个事件记录文档中共发现{count}个关键字词", "info", logfile_only=True)
+                print(
+                    f"{self.color}在{', '.join(document)}这{len(document)}个事件记录文档中共发现{count}个关键字词\n"
+                )
+                log(
+                    f"在{', '.join(document)}这{len(document)}个事件记录文档中共发现{count}个关键字词",
+                    "info",
+                    logfile_only=True,
+                )
             log("", "info", logfile_only=True)
         else:
             print(self.color + self.do_find.__doc__)
 
-    def complete_find(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_find(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         if re.match(r"find [^.*$]+ in year \w*", line):
             return [i for i in self.YEARS if i.startswith(text)]
         if re.match(r"find [^.*$]+ in month \w*", line):
-            return [i for i in [str(i) for i in range(1, 13)] if i.startswith(text)]
+            return [
+                i for i in [str(i) for i in range(1, 13)] if i.startswith(text)
+            ]
         if re.match(r"find [^.*$]+ in only \w*", line):
             parts = text.split("/")
             year_part = parts[0] if len(parts) > 0 else ""
@@ -401,11 +650,13 @@ class FTFCmd(Cmd):
                 options.append(f"{year_part}/annual_summary")
             return options
         if re.match(r"find [^.*$]+ in ", line) and len(line.split(" ")) == 4:
-            return [i for i in ["*", "year", "month", "only"] if i.startswith(text)]
+            return [
+                i for i in ["*", "year", "month", "only"] if i.startswith(text)
+            ]
         if len(line.split(" ")) == 3:
             return ["in"]
         return []
-    
+
     def do_open(self, args: str):
         """
         打开指定的文档。
@@ -422,38 +673,70 @@ class FTFCmd(Cmd):
             return
         document = args
         if document.split("/")[1] == "annual_summary":
-            docments_path = os.path.join(ftfpath, document.split("/")[0], "年度总结.docx")
+            docments_path = os.path.join(
+                ftfpath, document.split("/")[0], "年度总结.docx"
+            )
         else:
-            docments_path = os.path.join(ftfpath, document.split("/")[0], f"{document.split("/")[1]}月.docx")
+            docments_path = os.path.join(
+                ftfpath,
+                document.split("/")[0],
+                f"{document.split("/")[1]}月.docx",
+            )
         if not os.path.exists(docments_path):
             if document.split("/")[1] == "annual_summary":
-                print(f"{self.color}未找到{document.split('/')[0]}年的年度总结")
-                log(f"未找到{document.split('/')[0]}年的年度总结", "warning", logfile_only=True)
+                print(
+                    f"{self.color}未找到{document.split('/')[0]}年的年度总结"
+                )
+                log(
+                    f"未找到{document.split('/')[0]}年的年度总结",
+                    "warning",
+                    logfile_only=True,
+                )
             else:
                 print(f"{self.color}未找到{document}的事件记录文档")
-                log(f"未找到{document}的事件记录文档", "warning", logfile_only=True)
+                log(
+                    f"未找到{document}的事件记录文档",
+                    "warning",
+                    logfile_only=True,
+                )
             return
         os.system(f"start {docments_path}")
         if document.split("/")[1] == "annual_summary":
-            log(f"打开了{document.split('/')[0]}年的年度总结", "info", logfile_only=True)
+            log(
+                f"打开了{document.split('/')[0]}年的年度总结",
+                "info",
+                logfile_only=True,
+            )
         else:
             log(f"打开了{document}的事件记录文档", "info", logfile_only=True)
 
-    def complete_open(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_open(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         parts = text.split("/")
         year_part = parts[0] if len(parts) > 0 else ""
         month_part = parts[1] if len(parts) > 1 else ""
         if "/" not in text:
             return [f"{i}/" for i in self.YEARS if i.startswith(year_part)]
         if month_part == "":
-            months = [f"{year_part}/{i}" for i in [str(i) for i in range(1, 13)]]
+            months = [
+                f"{year_part}/{i}" for i in [str(i) for i in range(1, 13)]
+            ]
             annual = [f"{year_part}/annual_summary"]
             return months + annual
         else:
             if month_part.startswith("a"):
-                return [f"{year_part}/annual_summary"] if "annual_summary".startswith(month_part) else []
+                return (
+                    [f"{year_part}/annual_summary"]
+                    if "annual_summary".startswith(month_part)
+                    else []
+                )
             else:
-                return [f"{year_part}/{i}" for i in [str(i) for i in range(1, 13)] if i.startswith(month_part)]
+                return [
+                    f"{year_part}/{i}"
+                    for i in [str(i) for i in range(1, 13)]
+                    if i.startswith(month_part)
+                ]
 
     def do_count(self, args: str):
         """
@@ -488,36 +771,91 @@ class FTFCmd(Cmd):
                 if start_count:
                     if paragraph.text == "":
                         break
-                    if not paragraph.text[0].isdigit() and not paragraph.text.endswith("："):
+                    if not paragraph.text[
+                        0
+                    ].isdigit() and not paragraph.text.endswith("："):
                         total_count += 1
                         month_count += 1
                         month_info[month] = month_count
                     else:
                         month_count = 0
-                        month = int(re.search(r"(\d+)月", paragraph.text).group(1))
-                        actual_records_month[month] = int(re.search(r"共(\d+)个", paragraph.text).group(1)) if re.search(r"共(\d+)个", paragraph.text) else 0
-                if not start_count and "新事物（或重大事件）" in paragraph.text:
+                        month = int(
+                            re.search(r"(\d+)月", paragraph.text).group(1)
+                        )
+                        actual_records_month[month] = (
+                            int(
+                                re.search(r"共(\d+)个", paragraph.text).group(
+                                    1
+                                )
+                            )
+                            if re.search(r"共(\d+)个", paragraph.text)
+                            else 0
+                        )
+                if (
+                    not start_count
+                    and "新事物（或重大事件）" in paragraph.text
+                ):
                     start_count = True
-                    actual_records = int(re.search(r"(\d+)个新事物（或重大事件）", paragraph.text).group(1)) if re.search(r"(\d+)个新事物（或重大事件）", paragraph.text) else 0
-            print(f"{self.color}在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）")
-            log(f"在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）", "info", logfile_only=True)
+                    actual_records = (
+                        int(
+                            re.search(
+                                r"(\d+)个新事物（或重大事件）", paragraph.text
+                            ).group(1)
+                        )
+                        if re.search(
+                            r"(\d+)个新事物（或重大事件）", paragraph.text
+                        )
+                        else 0
+                    )
+            print(
+                f"{self.color}在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）"
+            )
+            log(
+                f"在{year}年的年度总结中共发现{total_count}个新事物（或重大事件）",
+                "info",
+                logfile_only=True,
+            )
             for k, v in month_info.items():
                 if v == actual_records_month[k]:
                     print(f"{self.color}{str(k)}月: {v}个")
                     log(f"{str(k)}月: {v}个", "info", logfile_only=True)
                 else:
-                    print(f"{self.color}{str(k)}月: {v}个（年度总结中记录为{actual_records_month[k]}个，请更正）")
-                    log(f"{str(k)}月: {v}个（年度总结中记录为{actual_records_month[k]}个，请更正）", "info", logfile_only=True)
+                    print(
+                        f"{self.color}{str(k)}月: {v}个（年度总结中记录为{actual_records_month[k]}个，请更正）"
+                    )
+                    log(
+                        f"{str(k)}月: {v}个（年度总结中记录为{actual_records_month[k]}个，请更正）",
+                        "info",
+                        logfile_only=True,
+                    )
                     wrong_records_count += 1
             if total_count == actual_records:
-                print(f"{self.color}在年度总结中共发现{total_count}个新事物（或重大事件），与实际记录一致")
-                log(f"在年度总结中共发现{total_count}个新事物（或重大事件），与实际记录一致", "info", logfile_only=True)
+                print(
+                    f"{self.color}在年度总结中共发现{total_count}个新事物（或重大事件），与实际记录一致"
+                )
+                log(
+                    f"在年度总结中共发现{total_count}个新事物（或重大事件），与实际记录一致",
+                    "info",
+                    logfile_only=True,
+                )
             else:
-                print(f"{self.color}在年度总结中共发现{total_count}个新事物（或重大事件），但年度总结中记录为{actual_records}个，请更正")
-                log(f"在年度总结中共发现{total_count}个新事物（或重大事件），但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}在年度总结中共发现{total_count}个新事物（或重大事件），但年度总结中记录为{actual_records}个，请更正"
+                )
+                log(
+                    f"在年度总结中共发现{total_count}个新事物（或重大事件），但年度总结中记录为{actual_records}个，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 wrong_records_count += 1
-            print(f"{self.color}对{year}年新事物（或重大事件）的统计与检查已完成，共发现{wrong_records_count}项记录错误")
-            log(f"对{year}年新事物（或重大事件）的统计与检查已完成，共发现{wrong_records_count}项记录错误", "info", logfile_only=True)
+            print(
+                f"{self.color}对{year}年新事物（或重大事件）的统计与检查已完成，共发现{wrong_records_count}项记录错误"
+            )
+            log(
+                f"对{year}年新事物（或重大事件）的统计与检查已完成，共发现{wrong_records_count}项记录错误",
+                "info",
+                logfile_only=True,
+            )
             print()
             log("", "info", logfile_only=True)
         elif args.split(" ")[0] == "normal_period":
@@ -542,55 +880,138 @@ class FTFCmd(Cmd):
                 if start_count:
                     if paragraph.text == "":
                         break
-                    if not paragraph.text[0].isdigit() and not paragraph.text.endswith("："):
+                    if not paragraph.text[
+                        0
+                    ].isdigit() and not paragraph.text.endswith("："):
                         total_count += 1
                         month_count += 1
                         month_info[month] = month_count
                     else:
                         month_count = 0
-                        month = int(re.search(r"(\d+)月", paragraph.text).group(1))
+                        month = int(
+                            re.search(r"(\d+)月", paragraph.text).group(1)
+                        )
                     if "时期（强）" in paragraph.text:
                         total_count_strong += 1
                     if "时期（弱）" in paragraph.text:
                         total_count_weak += 1
-                if not start_count and ("常规“时期”" in paragraph.text or "被称为“时期”" in paragraph.text):
+                if not start_count and (
+                    "常规“时期”" in paragraph.text
+                    or "被称为“时期”" in paragraph.text
+                ):
                     start_count = True
-                    matched_records = re.search(r"(\d+)个常规“时期”", paragraph.text)
+                    matched_records = re.search(
+                        r"(\d+)个常规“时期”", paragraph.text
+                    )
                     if not matched_records:
-                        matched_records = re.search(r"被称为“时期”的有(\d+)个", paragraph.text)
-                    actual_records = int(matched_records.group(1)) if matched_records else 0
-                    actual_total_count_strong = int(re.search(r"(\d+)个强“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个强“时期”", paragraph.text) else 0
-                    actual_total_count_weak = int(re.search(r"(\d+)个弱“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个弱“时期”", paragraph.text) else 0
-            print(f"{self.color}在{year}年的年度总结中共发现{total_count}个常规“时期”")
-            log(f"在{year}年的年度总结中共发现{total_count}个常规“时期”", "info", logfile_only=True)
-            print(f"{self.color}其中强“时期”有{total_count_strong}个，弱“时期”有{total_count_weak}个")
-            log(f"其中强“时期”有{total_count_strong}个，弱“时期”有{total_count_weak}个", "info", logfile_only=True)
+                        matched_records = re.search(
+                            r"被称为“时期”的有(\d+)个", paragraph.text
+                        )
+                    actual_records = (
+                        int(matched_records.group(1)) if matched_records else 0
+                    )
+                    actual_total_count_strong = (
+                        int(
+                            re.search(
+                                r"(\d+)个强“时期”", paragraph.text
+                            ).group(1)
+                        )
+                        if re.search(r"(\d+)个强“时期”", paragraph.text)
+                        else 0
+                    )
+                    actual_total_count_weak = (
+                        int(
+                            re.search(
+                                r"(\d+)个弱“时期”", paragraph.text
+                            ).group(1)
+                        )
+                        if re.search(r"(\d+)个弱“时期”", paragraph.text)
+                        else 0
+                    )
+            print(
+                f"{self.color}在{year}年的年度总结中共发现{total_count}个常规“时期”"
+            )
+            log(
+                f"在{year}年的年度总结中共发现{total_count}个常规“时期”",
+                "info",
+                logfile_only=True,
+            )
+            print(
+                f"{self.color}其中强“时期”有{total_count_strong}个，弱“时期”有{total_count_weak}个"
+            )
+            log(
+                f"其中强“时期”有{total_count_strong}个，弱“时期”有{total_count_weak}个",
+                "info",
+                logfile_only=True,
+            )
             for k, v in month_info.items():
                 print(f"{self.color}{str(k)}月: {v}个")
                 log(f"{str(k)}月: {v}个", "info", logfile_only=True)
             if total_count == actual_records:
-                print(f"{self.color}在年度总结中共发现{total_count}个常规“时期”，与实际记录一致")
-                log(f"在年度总结中共发现{total_count}个常规“时期”，与实际记录一致", "info", logfile_only=True)
+                print(
+                    f"{self.color}在年度总结中共发现{total_count}个常规“时期”，与实际记录一致"
+                )
+                log(
+                    f"在年度总结中共发现{total_count}个常规“时期”，与实际记录一致",
+                    "info",
+                    logfile_only=True,
+                )
             else:
-                print(f"{self.color}在年度总结中共发现{total_count}个常规“时期”，但年度总结中记录为{actual_records}个，请更正")
-                log(f"在年度总结中共发现{total_count}个常规“时期”，但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}在年度总结中共发现{total_count}个常规“时期”，但年度总结中记录为{actual_records}个，请更正"
+                )
+                log(
+                    f"在年度总结中共发现{total_count}个常规“时期”，但年度总结中记录为{actual_records}个，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 wrong_records_count += 1
             if total_count_strong == actual_total_count_strong:
-                print(f"{self.color}发现强“时期”{total_count_strong}个，与实际记录一致")
-                log(f"发现强“时期”{total_count_strong}个，与实际记录一致", "info", logfile_only=True)
+                print(
+                    f"{self.color}发现强“时期”{total_count_strong}个，与实际记录一致"
+                )
+                log(
+                    f"发现强“时期”{total_count_strong}个，与实际记录一致",
+                    "info",
+                    logfile_only=True,
+                )
             else:
-                print(f"{self.color}发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正")
-                log(f"发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正"
+                )
+                log(
+                    f"发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 wrong_records_count += 1
             if total_count_weak == actual_total_count_weak:
-                print(f"{self.color}发现弱“时期”{total_count_weak}个，与实际记录一致")
-                log(f"发现弱“时期”{total_count_weak}个，与实际记录一致", "info", logfile_only=True)
+                print(
+                    f"{self.color}发现弱“时期”{total_count_weak}个，与实际记录一致"
+                )
+                log(
+                    f"发现弱“时期”{total_count_weak}个，与实际记录一致",
+                    "info",
+                    logfile_only=True,
+                )
             else:
-                print(f"{self.color}发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正")
-                log(f"发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正"
+                )
+                log(
+                    f"发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 wrong_records_count += 1
-            print(f"{self.color}对{year}年常规“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误")
-            log(f"对{year}年常规“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误", "info", logfile_only=True)
+            print(
+                f"{self.color}对{year}年常规“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误"
+            )
+            log(
+                f"对{year}年常规“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误",
+                "info",
+                logfile_only=True,
+            )
             print()
             log("", "info", logfile_only=True)
         elif args.split(" ")[0] == "combined_period":
@@ -615,53 +1036,127 @@ class FTFCmd(Cmd):
                     if paragraph.text == "":
                         break
                     total_count += 1
-                    month_info.append(re.search(r"\d+~\d+月", paragraph.text).group(0))
+                    month_info.append(
+                        re.search(r"\d+~\d+月", paragraph.text).group(0)
+                    )
                     if re.search(r"强.*“时期”", paragraph.text):
                         total_count_strong += 1
                     if re.search(r"弱.*“时期”", paragraph.text):
                         total_count_weak += 1
                 if not start_count and "合称“时期”" in paragraph.text:
                     start_count = True
-                    actual_records = int(re.search(r"(\d+)个合称“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个合称“时期”", paragraph.text) else 0
-                    actual_total_count_strong = int(re.search(r"(\d+)个强“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个强“时期”", paragraph.text) else 0
-                    actual_total_count_weak = int(re.search(r"(\d+)个弱“时期”", paragraph.text).group(1)) if re.search(r"(\d+)个弱“时期”", paragraph.text) else 0
+                    actual_records = (
+                        int(
+                            re.search(
+                                r"(\d+)个合称“时期”", paragraph.text
+                            ).group(1)
+                        )
+                        if re.search(r"(\d+)个合称“时期”", paragraph.text)
+                        else 0
+                    )
+                    actual_total_count_strong = (
+                        int(
+                            re.search(
+                                r"(\d+)个强“时期”", paragraph.text
+                            ).group(1)
+                        )
+                        if re.search(r"(\d+)个强“时期”", paragraph.text)
+                        else 0
+                    )
+                    actual_total_count_weak = (
+                        int(
+                            re.search(
+                                r"(\d+)个弱“时期”", paragraph.text
+                            ).group(1)
+                        )
+                        if re.search(r"(\d+)个弱“时期”", paragraph.text)
+                        else 0
+                    )
             if total_count == actual_records:
-                print(f"{self.color}在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}")
-                log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}", "info", logfile_only=True)
+                print(
+                    f"{self.color}在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}"
+                )
+                log(
+                    f"在{year}年的年度总结中共发现{total_count}个合称“时期”: {', '.join([i for i in month_info])}",
+                    "info",
+                    logfile_only=True,
+                )
             else:
-                print(f"{self.color}在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正")
-                log(f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正"
+                )
+                log(
+                    f"在{year}年的年度总结中共发现{total_count}个合称“时期”，但年度总结中记录为{actual_records}个，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 wrong_records_count += 1
             if total_count_strong == actual_total_count_strong:
-                print(f"{self.color}发现强“时期”{total_count_strong}个，与实际记录一致")
-                log(f"发现强“时期”{total_count_strong}个，与实际记录一致", "info", logfile_only=True)
+                print(
+                    f"{self.color}发现强“时期”{total_count_strong}个，与实际记录一致"
+                )
+                log(
+                    f"发现强“时期”{total_count_strong}个，与实际记录一致",
+                    "info",
+                    logfile_only=True,
+                )
             else:
-                print(f"{self.color}发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正")
-                log(f"发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正"
+                )
+                log(
+                    f"发现强“时期”{total_count_strong}个，但年度总结中记录为{actual_total_count_strong}个，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 wrong_records_count += 1
             if total_count_weak == actual_total_count_weak:
-                print(f"{self.color}发现弱“时期”{total_count_weak}个，与实际记录一致")
-                log(f"发现弱“时期”{total_count_weak}个，与实际记录一致", "info", logfile_only=True)
+                print(
+                    f"{self.color}发现弱“时期”{total_count_weak}个，与实际记录一致"
+                )
+                log(
+                    f"发现弱“时期”{total_count_weak}个，与实际记录一致",
+                    "info",
+                    logfile_only=True,
+                )
             else:
-                print(f"{self.color}发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正")
-                log(f"发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正"
+                )
+                log(
+                    f"发现弱“时期”{total_count_weak}个，但年度总结中记录为{actual_total_count_weak}个，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 wrong_records_count += 1
-            print(f"{self.color}对{year}年合称“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误")
-            log(f"对{year}年合称“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误", "info", logfile_only=True)
+            print(
+                f"{self.color}对{year}年合称“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误"
+            )
+            log(
+                f"对{year}年合称“时期”的统计与检查已完成，共发现{wrong_records_count}项记录错误",
+                "info",
+                logfile_only=True,
+            )
             print()
             log("", "info", logfile_only=True)
         else:
             print(self.color + self.do_count.__doc__)
 
-    def complete_count(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_count(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         if re.match(r"count (N&M|normal_period|combined_period) in \w*", line):
             return [i for i in self.YEARS if i.startswith(text)]
         if len(line.split(" ")) > 2:
             return ["in"]
         if line.startswith("count "):
-            return [i for i in ["N&M", "normal_period", "combined_period"] if i.startswith(text)]
+            return [
+                i
+                for i in ["N&M", "normal_period", "combined_period"]
+                if i.startswith(text)
+            ]
         return []
-    
+
     def _check_annual_summary(self, paragraphs: List[Paragraph], year: str):
         line = 0
         normal_period_start = False
@@ -671,85 +1166,214 @@ class FTFCmd(Cmd):
         for paragraph in paragraphs:
             line += 1
             if line == 1 and paragraph.text != "年度总结":
-                print(f"{self.color}{year}年年度总结第{line}个段落: 标题不规范（应为“年度总结”），请更正")
-                log(f"{year}年年度总结第{line}个段落: 标题不规范（应为“年度总结”），请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年年度总结第{line}个段落: 标题不规范（应为“年度总结”），请更正"
+                )
+                log(
+                    f"{year}年年度总结第{line}个段落: 标题不规范（应为“年度总结”），请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
             if line == 2 and paragraph.text != "朝花已经绽放，是时候将它拾起":
-                print(f"{self.color}{year}年年度总结第{line}个段落: 应为“朝花已经绽放，是时候将它拾起”，请更正")
-                log(f"{year}年年度总结第{line}个段落: 应为“朝花已经绽放，是时候将它拾起”，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年年度总结第{line}个段落: 应为“朝花已经绽放，是时候将它拾起”，请更正"
+                )
+                log(
+                    f"{year}年年度总结第{line}个段落: 应为“朝花已经绽放，是时候将它拾起”，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
             if "," in paragraph.text:
-                print(f"{self.color}{year}年年度总结第{line}个段落: 不应出现半角逗号，请更正")
-                log(f"{year}年年度总结第{line}个段落: 不应出现半角逗号，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年年度总结第{line}个段落: 不应出现半角逗号，请更正"
+                )
+                log(
+                    f"{year}年年度总结第{line}个段落: 不应出现半角逗号，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
             if ":" in paragraph.text:
-                print(f"{self.color}{year}年年度总结第{line}个段落: 不应出现半角冒号，请更正")
-                log(f"{year}年年度总结第{line}个段落: 不应出现半角冒号，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年年度总结第{line}个段落: 不应出现半角冒号，请更正"
+                )
+                log(
+                    f"{year}年年度总结第{line}个段落: 不应出现半角冒号，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
-            year_match = re.search(r"(\d+)年共有(\d+)个新事物（或重大事件）", paragraph.text)
+            year_match = re.search(
+                r"(\d+)年共有(\d+)个新事物（或重大事件）", paragraph.text
+            )
             if year_match and year_match.group(1) != year:
-                print(f"{self.color}{year}年年度总结第{line}个段落: 年份不匹配，请更正")
-                log(f"{year}年年度总结第{line}个段落: 年份不匹配，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年年度总结第{line}个段落: 年份不匹配，请更正"
+                )
+                log(
+                    f"{year}年年度总结第{line}个段落: 年份不匹配，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
-            if paragraph.text != "" and paragraph.text[0].isdigit() and paragraph.text[1] == "月":
+            if (
+                paragraph.text != ""
+                and paragraph.text[0].isdigit()
+                and paragraph.text[1] == "月"
+            ):
                 if int(paragraph.text[0]) < 1 or int(paragraph.text[0]) > 12:
-                    print(f"{self.color}{year}年年度总结第{line}个段落: 月份异常（月份应为1到12的数字），请更正")
-                    log(f"{year}年年度总结第{line}个段落: 月份异常（月份应为1到12的数字），请更正", "info", logfile_only=True)
+                    print(
+                        f"{self.color}{year}年年度总结第{line}个段落: 月份异常（月份应为1到12的数字），请更正"
+                    )
+                    log(
+                        f"{year}年年度总结第{line}个段落: 月份异常（月份应为1到12的数字），请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
                 if not paragraph.text.endswith("："):
-                    print(f"{self.color}{year}年年度总结第{line}个段落: 缺少冒号，请更正")
-                    log(f"{year}年年度总结第{line}个段落: 缺少冒号，请更正", "info", logfile_only=True)
+                    print(
+                        f"{self.color}{year}年年度总结第{line}个段落: 缺少冒号，请更正"
+                    )
+                    log(
+                        f"{year}年年度总结第{line}个段落: 缺少冒号，请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
-                if not re.search(r"共\d+个", paragraph.text) and not normal_period_start and not combined_period_start:
-                    print(f"{self.color}{year}年年度总结第{line}个段落: 缺少新事物（或重大事件）的数量统计（应包含“共X个”字样），请更正")
-                    log(f"{year}年年度总结第{line}个段落: 缺少新事物（或重大事件）的数量统计（应包含“共X个”字样），请更正", "info", logfile_only=True)
+                if (
+                    not re.search(r"共\d+个", paragraph.text)
+                    and not normal_period_start
+                    and not combined_period_start
+                ):
+                    print(
+                        f"{self.color}{year}年年度总结第{line}个段落: 缺少新事物（或重大事件）的数量统计（应包含“共X个”字样），请更正"
+                    )
+                    log(
+                        f"{year}年年度总结第{line}个段落: 缺少新事物（或重大事件）的数量统计（应包含“共X个”字样），请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
             if paragraph.text.startswith("其中，共有"):
                 normal_period_start = True
                 if paragraphs[line - 2].text != "":
-                    print(f"{self.color}{year}年年度总结第{line}个段落: 未空行，请更正")
-                    log(f"{year}年年度总结第{line}个段落: 未空行，请更正", "info", logfile_only=True)
+                    print(
+                        f"{self.color}{year}年年度总结第{line}个段落: 未空行，请更正"
+                    )
+                    log(
+                        f"{year}年年度总结第{line}个段落: 未空行，请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
                 if not re.search(r"(\d+)个常规“时期”", paragraph.text):
-                    print(f"{self.color}{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正")
-                    log(f"{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正", "info", logfile_only=True)
+                    print(
+                        f"{self.color}{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正"
+                    )
+                    log(
+                        f"{year}年年度总结第{line}个段落: 未统计常规“时期”数量，请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
             if "定位物" in paragraph.text:
-                obj = re.sub(r"等.*?类", "|", paragraph.text.split("定位物：")[-1]).replace("、", "|").split("|")
+                obj = (
+                    re.sub(
+                        r"等.*?类", "|", paragraph.text.split("定位物：")[-1]
+                    )
+                    .replace("、", "|")
+                    .split("|")
+                )
                 for i in obj:
                     if i != "":
-                        positioning_objects.append(i if not i.startswith("，") else i[1:])
-            if paragraph.text != "" and paragraph.text[0].isdigit() and paragraph.text[1] == "月" and "称为" not in paragraph.text and normal_period_start:
-                print(f"{self.color}{year}年年度总结第{line}个段落: 缺少月份命名，请更正")
-                log(f"{year}年年度总结第{line}个段落: 缺少月份命名，请更正", "info", logfile_only=True)
+                        positioning_objects.append(
+                            i if not i.startswith("，") else i[1:]
+                        )
+            if (
+                paragraph.text != ""
+                and paragraph.text[0].isdigit()
+                and paragraph.text[1] == "月"
+                and "称为" not in paragraph.text
+                and normal_period_start
+            ):
+                print(
+                    f"{self.color}{year}年年度总结第{line}个段落: 缺少月份命名，请更正"
+                )
+                log(
+                    f"{year}年年度总结第{line}个段落: 缺少月份命名，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
             if paragraph.text.startswith("以及"):
                 combined_period_start = True
                 if paragraphs[line - 2].text != "":
-                    print(f"{self.color}{year}年年度总结第{line}个段落: 未空行，请更正")
-                    log(f"{year}年年度总结第{line}个段落: 未空行，请更正", "info", logfile_only=True)
+                    print(
+                        f"{self.color}{year}年年度总结第{line}个段落: 未空行，请更正"
+                    )
+                    log(
+                        f"{year}年年度总结第{line}个段落: 未空行，请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
                 if not re.search(r"(\d+)个合称“时期”", paragraph.text):
-                    print(f"{self.color}{year}年年度总结第{line}个段落: 未统计合称“时期”数量，请更正")
-                    log(f"{year}年年度总结第{line}个段落: 未统计合称“时期”数量，请更正", "info", logfile_only=True)
+                    print(
+                        f"{self.color}{year}年年度总结第{line}个段落: 未统计合称“时期”数量，请更正"
+                    )
+                    log(
+                        f"{year}年年度总结第{line}个段落: 未统计合称“时期”数量，请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
-            if paragraph.text.startswith("年主题曲") and paragraphs[line - 2].text != "":
-                print(f"{self.color}{year}年年度总结第{line}个段落: 未空行，请更正")
-                log(f"{year}年年度总结第{line}个段落: 未空行，请更正", "info", logfile_only=True)
+            if (
+                paragraph.text.startswith("年主题曲")
+                and paragraphs[line - 2].text != ""
+            ):
+                print(
+                    f"{self.color}{year}年年度总结第{line}个段落: 未空行，请更正"
+                )
+                log(
+                    f"{year}年年度总结第{line}个段落: 未空行，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
         if "年主题曲：" not in str([p.text for p in paragraphs]):
-            print(f"{self.color}{year}年年度总结: 缺少年主题曲部分（若没有也请标记为“无”），请更正")
-            log(f"{year}年年度总结: 缺少年主题曲部分（若没有也请标记为“无”），请更正", "info", logfile_only=True)
+            print(
+                f"{self.color}{year}年年度总结: 缺少年主题曲部分（若没有也请标记为“无”），请更正"
+            )
+            log(
+                f"{year}年年度总结: 缺少年主题曲部分（若没有也请标记为“无”），请更正",
+                "info",
+                logfile_only=True,
+            )
             irregularity_count += 1
         if "年文章：" not in str([p.text for p in paragraphs]):
-            print(f"{self.color}{year}年年度总结: 缺少年文章部分（若没有也请标记为“无”），请更正")
-            log(f"{year}年年度总结: 缺少年文章部分（若没有也请标记为“无”），请更正", "info", logfile_only=True)
+            print(
+                f"{self.color}{year}年年度总结: 缺少年文章部分（若没有也请标记为“无”），请更正"
+            )
+            log(
+                f"{year}年年度总结: 缺少年文章部分（若没有也请标记为“无”），请更正",
+                "info",
+                logfile_only=True,
+            )
             irregularity_count += 1
         seen = set()
         for i in positioning_objects:
             if i.split("（")[0] in seen and "（复用）" not in i:
-                print(f"{self.color}{year}年年度总结: 存在未标明复用的定位物“{i}”，请更正")
-                log(f"{year}年年度总结: 存在未标明复用的定位物“{i}”，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年年度总结: 存在未标明复用的定位物“{i}”，请更正"
+                )
+                log(
+                    f"{year}年年度总结: 存在未标明复用的定位物“{i}”，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
             else:
                 seen.add(i.split("（")[0])
@@ -758,30 +1382,61 @@ class FTFCmd(Cmd):
             for y in self.YEARS:
                 if y == year:
                     continue
-                annual_summary_doc = Document(os.path.join(ftfpath, y, "年度总结.docx"))
-                if year > y and obj.split("（")[0] in str([p.text for p in annual_summary_doc.paragraphs]) and "（复用）" not in obj:
-                    print(f"{self.color}{year}年年度总结: 存在未标明复用的定位物“{obj}”，其在{y}年年度总结中曾被使用，请更正")
-                    log(f"{year}年年度总结: 存在未标明复用的定位物“{obj}”，其在{y}年年度总结中曾被使用，请更正", "info", logfile_only=True)
+                annual_summary_doc = Document(
+                    os.path.join(ftfpath, y, "年度总结.docx")
+                )
+                if (
+                    year > y
+                    and obj.split("（")[0]
+                    in str([p.text for p in annual_summary_doc.paragraphs])
+                    and "（复用）" not in obj
+                ):
+                    print(
+                        f"{self.color}{year}年年度总结: 存在未标明复用的定位物“{obj}”，其在{y}年年度总结中曾被使用，请更正"
+                    )
+                    log(
+                        f"{year}年年度总结: 存在未标明复用的定位物“{obj}”，其在{y}年年度总结中曾被使用，请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     isreuse = True
                     irregularity_count += 1
             if not isreuse and "（复用）" in obj:
-                print(f"{self.color}{year}年年度总结: 存在未被复用的定位物“{obj}”被标明为复用，请更正")
-                log(f"{year}年年度总结: 存在未被复用的定位物“{obj}”被标明为复用，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年年度总结: 存在未被复用的定位物“{obj}”被标明为复用，请更正"
+                )
+                log(
+                    f"{year}年年度总结: 存在未被复用的定位物“{obj}”被标明为复用，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
         possible_yearly_assessment = [p.text for p in paragraphs][-1]
         if possible_yearly_assessment.startswith("年度评估："):
             yearly_assessment = possible_yearly_assessment.split("：")[1]
             if yearly_assessment not in self.YEARLY_JUDGMENT:
-                print(f"{self.color}{year}年年度总结: 年度评估内容无效，请更正")
-                log(f"{year}年年度总结: 年度评估内容无效，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年年度总结: 年度评估内容无效，请更正"
+                )
+                log(
+                    f"{year}年年度总结: 年度评估内容无效，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
         else:
             print(f"{self.color}{year}年年度总结: 缺少年度评估，请更正")
-            log(f"{year}年年度总结: 缺少年度评估，请更正", "info", logfile_only=True)
+            log(
+                f"{year}年年度总结: 缺少年度评估，请更正",
+                "info",
+                logfile_only=True,
+            )
             irregularity_count += 1
         return irregularity_count
 
-    def _check_event_record(self, paragraphs: List[Paragraph], year: str, month: str):
+    def _check_event_record(
+        self, paragraphs: List[Paragraph], year: str, month: str
+    ):
         irregularity_count = 0
         parts = []
         possible_monthly_assessment = []
@@ -795,24 +1450,50 @@ class FTFCmd(Cmd):
             if not part:
                 continue
             if not re.search(r"(\d+)年(\d+)月", part[0]):
-                print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 未记录时间，请更正")
-                log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 未记录时间，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 未记录时间，请更正"
+                )
+                log(
+                    f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 未记录时间，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
             if "周度：" in part[0]:
                 possible_weekly_assessment = part[-1]
                 if possible_weekly_assessment.startswith("周度评估："):
-                    weekly_assessment = possible_weekly_assessment.split("：")[1]
+                    weekly_assessment = possible_weekly_assessment.split("：")[
+                        1
+                    ]
                     if weekly_assessment not in self.WEEKLY_JUDGMENT:
-                        print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 周度评估内容无效，请更正")
-                        log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 周度评估内容无效，请更正", "info", logfile_only=True)
+                        print(
+                            f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 周度评估内容无效，请更正"
+                        )
+                        log(
+                            f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 周度评估内容无效，请更正",
+                            "info",
+                            logfile_only=True,
+                        )
                         irregularity_count += 1
                 else:
-                    print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少周度评估，请更正")
-                    log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少周度评估，请更正", "info", logfile_only=True)
+                    print(
+                        f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少周度评估，请更正"
+                    )
+                    log(
+                        f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少周度评估，请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
-            if not "正面情感评估：" in str(part):
-                print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少正面情感评估，请更正")
-                log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少正面情感评估，请更正", "info", logfile_only=True)
+            if "正面情感评估：" not in str(part):
+                print(
+                    f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少正面情感评估，请更正"
+                )
+                log(
+                    f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少正面情感评估，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
             else:
                 positive_assessment_highest = -1
@@ -820,28 +1501,75 @@ class FTFCmd(Cmd):
                     if line.startswith("正面情感评估："):
                         if "，" in line:
                             positive_level = line.split("：")[1].split("，")[0]
-                            positive_assessment = line.split("：")[1].split("，")[1]
+                            positive_assessment = line.split("：")[1].split(
+                                "，"
+                            )[1]
                         else:
                             positive_level = line.split("：")[1]
                             positive_assessment = None
                         if positive_level not in self.POSITIVE_LEVELS:
-                            print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感类型等级无效，请更正")
-                            log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感类型等级无效，请更正", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感类型等级无效，请更正"
+                            )
+                            log(
+                                f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感类型等级无效，请更正",
+                                "info",
+                                logfile_only=True,
+                            )
                             irregularity_count += 1
-                        if positive_assessment and positive_assessment not in self.POSITIVE_ASSESS:
-                            print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 积极情感评估等级无效，请更正")
-                            log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 积极情感评估等级无效，请更正", "info", logfile_only=True)
+                        if (
+                            positive_assessment
+                            and positive_assessment not in self.POSITIVE_ASSESS
+                        ):
+                            print(
+                                f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 积极情感评估等级无效，请更正"
+                            )
+                            log(
+                                f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 积极情感评估等级无效，请更正",
+                                "info",
+                                logfile_only=True,
+                            )
                             irregularity_count += 1
-                    matched_positive_assessment = next((i for i in self.POSITIVE_ASSESS if i in line and not line.startswith("正面情感评估：") and not line.startswith("负面情感评估：")), None)
+                    matched_positive_assessment = next(
+                        (
+                            i
+                            for i in self.POSITIVE_ASSESS
+                            if i in line
+                            and not line.startswith("正面情感评估：")
+                            and not line.startswith("负面情感评估：")
+                        ),
+                        None,
+                    )
                     if matched_positive_assessment:
-                        positive_assessment_highest = max(positive_assessment_highest, self.POSITIVE_ASSESS.index(matched_positive_assessment))
-                if positive_assessment_highest >= 0 and self.POSITIVE_ASSESS[positive_assessment_highest] != positive_assessment:
-                    print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感评估等级错误，本周出现的最高等级为{self.POSITIVE_ASSESS[positive_assessment_highest]}，请更正")
-                    log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感评估等级错误，本周出现的最高等级为{self.POSITIVE_ASSESS[positive_assessment_highest]}，请更正", "info", logfile_only=True)
+                        positive_assessment_highest = max(
+                            positive_assessment_highest,
+                            self.POSITIVE_ASSESS.index(
+                                matched_positive_assessment
+                            ),
+                        )
+                if (
+                    positive_assessment_highest >= 0
+                    and self.POSITIVE_ASSESS[positive_assessment_highest]
+                    != positive_assessment
+                ):
+                    print(
+                        f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感评估等级错误，本周出现的最高等级为{self.POSITIVE_ASSESS[positive_assessment_highest]}，请更正"
+                    )
+                    log(
+                        f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 正面情感评估等级错误，本周出现的最高等级为{self.POSITIVE_ASSESS[positive_assessment_highest]}，请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
-            if not "负面情感评估：" in str(part):
-                print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少负面情感评估，请更正")
-                log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少负面情感评估，请更正", "info", logfile_only=True)
+            if "负面情感评估：" not in str(part):
+                print(
+                    f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少负面情感评估，请更正"
+                )
+                log(
+                    f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 缺少负面情感评估，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
             else:
                 negative_assessment_highest = -1
@@ -849,34 +1577,89 @@ class FTFCmd(Cmd):
                     if line.startswith("负面情感评估："):
                         if "，" in line:
                             negative_level = line.split("：")[1].split("，")[0]
-                            negative_assessment = line.split("：")[1].split("，")[1]
+                            negative_assessment = line.split("：")[1].split(
+                                "，"
+                            )[1]
                         else:
                             negative_level = line.split("：")[1]
                             negative_assessment = None
                         if negative_level not in self.NEGATIVE_LEVELS:
-                            print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感类型等级无效，请更正")
-                            log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感类型等级无效，请更正", "info", logfile_only=True)
+                            print(
+                                f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感类型等级无效，请更正"
+                            )
+                            log(
+                                f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感类型等级无效，请更正",
+                                "info",
+                                logfile_only=True,
+                            )
                             irregularity_count += 1
-                        if negative_assessment and negative_assessment not in self.NEGATIVE_ASSESS:
-                            print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 消极情感评估等级无效，请更正")
-                            log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 消极情感评估等级无效，请更正", "info", logfile_only=True)
+                        if (
+                            negative_assessment
+                            and negative_assessment not in self.NEGATIVE_ASSESS
+                        ):
+                            print(
+                                f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 消极情感评估等级无效，请更正"
+                            )
+                            log(
+                                f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 消极情感评估等级无效，请更正",
+                                "info",
+                                logfile_only=True,
+                            )
                             irregularity_count += 1
-                    matched_negative_assessment = next((i for i in self.NEGATIVE_ASSESS if i in line and not line.startswith("正面情感评估：") and not line.startswith("负面情感评估：")), None)
+                    matched_negative_assessment = next(
+                        (
+                            i
+                            for i in self.NEGATIVE_ASSESS
+                            if i in line
+                            and not line.startswith("正面情感评估：")
+                            and not line.startswith("负面情感评估：")
+                        ),
+                        None,
+                    )
                     if matched_negative_assessment:
-                        negative_assessment_highest = max(negative_assessment_highest, self.NEGATIVE_ASSESS.index(matched_negative_assessment))
-                if negative_assessment_highest >= 0 and self.NEGATIVE_ASSESS[negative_assessment_highest] != negative_assessment:
-                    print(f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感评估等级错误，本周出现的最高等级为{self.NEGATIVE_ASSESS[negative_assessment_highest]}，请更正")
-                    log(f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感评估等级错误，本周出现的最高等级为{self.NEGATIVE_ASSESS[negative_assessment_highest]}，请更正", "info", logfile_only=True)
+                        negative_assessment_highest = max(
+                            negative_assessment_highest,
+                            self.NEGATIVE_ASSESS.index(
+                                matched_negative_assessment
+                            ),
+                        )
+                if (
+                    negative_assessment_highest >= 0
+                    and self.NEGATIVE_ASSESS[negative_assessment_highest]
+                    != negative_assessment
+                ):
+                    print(
+                        f"{self.color}{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感评估等级错误，本周出现的最高等级为{self.NEGATIVE_ASSESS[negative_assessment_highest]}，请更正"
+                    )
+                    log(
+                        f"{year}年{month}月事件记录文档第{parts.index(part) + 1}周: 负面情感评估等级错误，本周出现的最高等级为{self.NEGATIVE_ASSESS[negative_assessment_highest]}，请更正",
+                        "info",
+                        logfile_only=True,
+                    )
                     irregularity_count += 1
-        if possible_monthly_assessment and possible_monthly_assessment[0].startswith("月度评估："):
+        if possible_monthly_assessment and possible_monthly_assessment[
+            0
+        ].startswith("月度评估："):
             monthly_assessment = possible_monthly_assessment[0].split("：")[1]
             if monthly_assessment not in self.MONTHLY_JUDGMENT:
-                print(f"{self.color}{year}年{month}月事件记录文档: 月度评估内容无效，请更正")
-                log(f"{year}年{month}月事件记录文档: 月度评估内容无效，请更正", "info", logfile_only=True)
+                print(
+                    f"{self.color}{year}年{month}月事件记录文档: 月度评估内容无效，请更正"
+                )
+                log(
+                    f"{year}年{month}月事件记录文档: 月度评估内容无效，请更正",
+                    "info",
+                    logfile_only=True,
+                )
                 irregularity_count += 1
         else:
-            print(f"{self.color}{year}年{month}月事件记录文档: 缺少月度评估，但也可能是该月尚未结束，请留意")
-            log(f"{year}年{month}月事件记录文档: 缺少月度评估，但也可能是该月尚未结束，请留意", "info", logfile_only=True)
+            print(
+                f"{self.color}{year}年{month}月事件记录文档: 缺少月度评估，但也可能是该月尚未结束，请留意"
+            )
+            log(
+                f"{year}年{month}月事件记录文档: 缺少月度评估，但也可能是该月尚未结束，请留意",
+                "info",
+                logfile_only=True,
+            )
             irregularity_count += 1
         return irregularity_count
 
@@ -888,9 +1671,13 @@ class FTFCmd(Cmd):
         year = os.path.basename(os.path.dirname(document))
         irregularity_count = 0
         if filename == "年度总结.docx":
-            irregularity_count += self._check_annual_summary(doc.paragraphs, year)
+            irregularity_count += self._check_annual_summary(
+                doc.paragraphs, year
+            )
         if filename.endswith("月.docx"):
-            irregularity_count += self._check_event_record(doc.paragraphs, year, filename.split("月")[0])
+            irregularity_count += self._check_event_record(
+                doc.paragraphs, year, filename.split("月")[0]
+            )
         return irregularity_count
 
     @staticmethod
@@ -906,7 +1693,9 @@ class FTFCmd(Cmd):
             return matched.group(1).strip(), matched.group(2)
         return text.strip(), ""
 
-    def _period_section(self, paragraphs: list[str], markers: tuple[str, ...]) -> tuple[int, str]:
+    def _period_section(
+        self, paragraphs: list[str], markers: tuple[str, ...]
+    ) -> tuple[int, str]:
         """定位“时期”统计段：返回段落下标与表头，找不到时下标为 -1"""
         for index, text in enumerate(paragraphs):
             if "个" in text and any(marker in text for marker in markers):
@@ -917,18 +1706,28 @@ class FTFCmd(Cmd):
         """从表头解析总数、强、弱；旧版年度总结没有强弱之分时返回 0"""
         total_count = self._first_number(header, r"(\d+)个(?:常规|合称)“时期”")
         if not total_count:
-            total_count = self._first_number(header, r"被称为“时期”的有(\d+)个")
+            total_count = self._first_number(
+                header, r"被称为“时期”的有(\d+)个"
+            )
         total_count_strong = self._first_number(header, r"(\d+)个强“时期”")
         total_count_weak = self._first_number(header, r"(\d+)个弱“时期”")
         return total_count, total_count_strong, total_count_weak
 
     def _list_normal_periods(self, year: str, paragraphs: list[str]):
-        start, header = self._period_section(paragraphs, ("常规“时期”", "被称为“时期”"))
+        start, header = self._period_section(
+            paragraphs, ("常规“时期”", "被称为“时期”")
+        )
         if start < 0:
             print(f"{self.color}{year}年的年度总结中没有找到常规“时期”的统计")
-            log(f"{year}年的年度总结中没有找到常规“时期”的统计", "warning", logfile_only=True)
+            log(
+                f"{year}年的年度总结中没有找到常规“时期”的统计",
+                "warning",
+                logfile_only=True,
+            )
             return
-        recorded, total_count_strong, total_count_weak = self._period_counts(header)
+        recorded, total_count_strong, total_count_weak = self._period_counts(
+            header
+        )
         entries: list[tuple[str, str, str]] = []
         month = ""
         for text in paragraphs[start + 1 :]:
@@ -947,8 +1746,12 @@ class FTFCmd(Cmd):
             if total_count_strong or total_count_weak
             else ""
         )
-        note = "" if recorded == len(entries) else f"，年度总结记录为{recorded}个"
-        print(f"{self.color}{year}年常规“时期”共{len(entries)}个{detail}{note}：")
+        note = (
+            "" if recorded == len(entries) else f"，年度总结记录为{recorded}个"
+        )
+        print(
+            f"{self.color}{year}年常规“时期”共{len(entries)}个{detail}{note}："
+        )
         log(
             f"{year}年常规“时期”共{len(entries)}个{detail}{note}",
             "info",
@@ -958,15 +1761,25 @@ class FTFCmd(Cmd):
             prefix = f"{month}月: " if month else ""
             label = f"（{level}）" if level else ""
             print(f"{self.color}  {prefix}{name}{label}")
-            log(f"{year}年常规“时期”: {prefix}{name}{label}", "info", logfile_only=True)
+            log(
+                f"{year}年常规“时期”: {prefix}{name}{label}",
+                "info",
+                logfile_only=True,
+            )
 
     def _list_combined_periods(self, year: str, paragraphs: list[str]):
         start, header = self._period_section(paragraphs, ("合称“时期”",))
         if start < 0:
             print(f"{self.color}{year}年的年度总结中没有找到合称“时期”的统计")
-            log(f"{year}年的年度总结中没有找到合称“时期”的统计", "warning", logfile_only=True)
+            log(
+                f"{year}年的年度总结中没有找到合称“时期”的统计",
+                "warning",
+                logfile_only=True,
+            )
             return
-        recorded, total_count_strong, total_count_weak = self._period_counts(header)
+        recorded, total_count_strong, total_count_weak = self._period_counts(
+            header
+        )
         entries: list[tuple[str, str, str]] = []
         for text in paragraphs[start + 1 :]:
             if not text:
@@ -989,8 +1802,12 @@ class FTFCmd(Cmd):
             if total_count_strong or total_count_weak
             else ""
         )
-        note = "" if recorded == len(entries) else f"，年度总结记录为{recorded}个"
-        print(f"{self.color}{year}年合称“时期”共{len(entries)}个{detail}{note}：")
+        note = (
+            "" if recorded == len(entries) else f"，年度总结记录为{recorded}个"
+        )
+        print(
+            f"{self.color}{year}年合称“时期”共{len(entries)}个{detail}{note}："
+        )
         log(
             f"{year}年合称“时期”共{len(entries)}个{detail}{note}",
             "info",
@@ -999,7 +1816,11 @@ class FTFCmd(Cmd):
         for months, name, level in entries:
             label = f"（{level}）" if level else ""
             print(f"{self.color}  {months}: {name}{label}")
-            log(f"{year}年合称“时期”: {months}: {name}{label}", "info", logfile_only=True)
+            log(
+                f"{year}年合称“时期”: {months}: {name}{label}",
+                "info",
+                logfile_only=True,
+            )
 
     def do_periods(self, args: str):
         """
@@ -1025,16 +1846,22 @@ class FTFCmd(Cmd):
             print(f"{self.color}未找到{year}年的年度总结")
             log(f"未找到{year}年的年度总结", "warning", logfile_only=True)
             return
-        paragraphs = [p.text.strip() for p in Document(document_path).paragraphs]
+        paragraphs = [
+            p.text.strip() for p in Document(document_path).paragraphs
+        ]
         if kind in ("", "normal"):
             self._list_normal_periods(year, paragraphs)
         if kind in ("", "combined"):
             self._list_combined_periods(year, paragraphs)
 
-    def complete_periods(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_periods(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         if line.startswith("periods "):
             if " " in line[len("periods ") :]:
-                return [i for i in ("normal", "combined") if i.startswith(text)]
+                return [
+                    i for i in ("normal", "combined") if i.startswith(text)
+                ]
             return [i for i in self.YEARS if i.startswith(text)]
         return []
 
@@ -1063,42 +1890,82 @@ class FTFCmd(Cmd):
                     start_year, end_year = year.split("~")
                     if not start_year.isdigit() or not end_year.isdigit():
                         print(f"{self.color}无效的年份范围: {year}")
-                        log(f"无效的年份范围: {year}", "warning", logfile_only=True)
+                        log(
+                            f"无效的年份范围: {year}",
+                            "warning",
+                            logfile_only=True,
+                        )
                         years.remove(year)
                         continue
                     start_year, end_year = int(start_year), int(end_year)
                     if start_year > end_year:
-                        print(f"{self.color}无效的年份范围: {year}（起始年份大于结束年份）")
-                        log(f"无效的年份范围: {year}（起始年份大于结束年份）", "warning", logfile_only=True)
+                        print(
+                            f"{self.color}无效的年份范围: {year}（起始年份大于结束年份）"
+                        )
+                        log(
+                            f"无效的年份范围: {year}（起始年份大于结束年份）",
+                            "warning",
+                            logfile_only=True,
+                        )
                         years.remove(year)
                         continue
-                    deduplicated_year.update(str(i) for i in range(start_year, end_year + 1))
+                    deduplicated_year.update(
+                        str(i) for i in range(start_year, end_year + 1)
+                    )
                 else:
                     if not year.isdigit():
                         print(f"{self.color}无效的年份: {year}")
-                        log(f"无效的年份: {year}", "warning", logfile_only=True)
+                        log(
+                            f"无效的年份: {year}", "warning", logfile_only=True
+                        )
                         continue
                     deduplicated_year.add(year)
             years = natsorted(deduplicated_year)
             if "2023" in years:
-                print(self.color + "通常不会检查2023年的文档，具体原因参见帮助文档。")
-                log("通常不会检查2023年的文档，具体原因参见帮助文档。", "info", logfile_only=True)
+                print(
+                    self.color
+                    + "通常不会检查2023年的文档，具体原因参见帮助文档。"
+                )
+                log(
+                    "通常不会检查2023年的文档，具体原因参见帮助文档。",
+                    "info",
+                    logfile_only=True,
+                )
                 years.remove("2023")
             if len(years) == 0:
                 print(self.color + "未指定有效的年份，检查已取消。")
-                log("未指定有效的年份，检查已取消。", "warning", logfile_only=True)
+                log(
+                    "未指定有效的年份，检查已取消。",
+                    "warning",
+                    logfile_only=True,
+                )
                 return
         irregularity_count = 0
         for year in years:
             docments_path = os.path.join(ftfpath, year)
             for document in natsorted(glob(f"{docments_path}\\*.docx")):
                 irregularity_count += self._check(document)
-        print(f"{self.color}对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范或疑似不规范处")
-        log(f"对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范或疑似不规范处", "info", logfile_only=True)
-        print(self.color + "注意: 检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断")
-        log("注意: 检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断", "info", logfile_only=True)
+        print(
+            f"{self.color}对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范或疑似不规范处"
+        )
+        log(
+            f"对{', '.join(years)}年文档的格式检查已完成，共发现{irregularity_count}项不规范或疑似不规范处",
+            "info",
+            logfile_only=True,
+        )
+        print(
+            self.color
+            + "注意: 检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断"
+        )
+        log(
+            "注意: 检查仅针对格式规范性，对于统计等数值部分的正确性并不进行判断",
+            "info",
+            logfile_only=True,
+        )
 
-    def complete_check(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_check(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         if line.startswith("check "):
             return [i for i in self.YEARS if i.startswith(text)]
         return []
@@ -1131,9 +1998,17 @@ class FTFCmd(Cmd):
             return
         start_time = parts[start_index + 1]
         end_time = parts[end_index + 1]
-        strong_count = int(parts[parts.index("strong") + 1]) if "strong" in parts else 0
-        weak_count = int(parts[parts.index("weak") + 1]) if "weak" in parts else 0
-        scattered_coefficient = int(parts[parts.index("scattered") + 1]) if "scattered" in parts else 1
+        strong_count = (
+            int(parts[parts.index("strong") + 1]) if "strong" in parts else 0
+        )
+        weak_count = (
+            int(parts[parts.index("weak") + 1]) if "weak" in parts else 0
+        )
+        scattered_coefficient = (
+            int(parts[parts.index("scattered") + 1])
+            if "scattered" in parts
+            else 1
+        )
         start_year, start_month = map(int, start_time.split("/"))
         if end_time == "now":
             now = datetime.datetime.now()
@@ -1141,22 +2016,36 @@ class FTFCmd(Cmd):
             end_time = f"{end_year}/{end_month}"
         else:
             end_year, end_month = map(int, end_time.split("/"))
-        if (start_year > end_year) or (start_year == end_year and start_month > end_month):
+        if (start_year > end_year) or (
+            start_year == end_year and start_month > end_month
+        ):
             print(self.color + "结束时间必须晚于起算时间")
             log("结束时间必须晚于起算时间", "warning", logfile_only=True)
             return
-        interval_months = (end_year - start_year) * 12 + (end_month - start_month)
+        interval_months = (end_year - start_year) * 12 + (
+            end_month - start_month
+        )
         total_items = strong_count + weak_count
         total_strength = strong_count * 2 + weak_count * 1
-        intensity = ((total_items * total_strength) / scattered_coefficient) * math.exp(-0.1 * interval_months)
-        print(f"{self.color}从{start_time}到{end_time}，间隔{interval_months}个月")
+        intensity = (
+            (total_items * total_strength) / scattered_coefficient
+        ) * math.exp(-0.1 * interval_months)
+        print(
+            f"{self.color}从{start_time}到{end_time}，间隔{interval_months}个月"
+        )
         print(f"{self.color}强定位物数量: {strong_count}")
         print(f"{self.color}弱定位物数量: {weak_count}")
         print(f"{self.color}分散系数: {scattered_coefficient}")
         print(f"{self.color}计算得到的“时期”强度为: {intensity:.2f}夕")
-        log(f"计算得到的“时期”强度为: {intensity:.2f}夕", "info", logfile_only=True)
+        log(
+            f"计算得到的“时期”强度为: {intensity:.2f}夕",
+            "info",
+            logfile_only=True,
+        )
 
-    def complete_calculate(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_calculate(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         options = ["strong", "weak", "scattered", "start", "end"]
         parts = line.split(" ")
         if len(parts) > 1:
@@ -1167,44 +2056,63 @@ class FTFCmd(Cmd):
                     parts = text.split("/")
                     if len(parts) == 2:
                         year_part, month_part = parts
-                        if year_part in self.YEARS or any(y.startswith(year_part) for y in self.YEARS):
+                        if year_part in self.YEARS or any(
+                            y.startswith(year_part) for y in self.YEARS
+                        ):
                             months = [str(i) for i in range(1, 13)]
-                            completions = [f"{year_part}/{m}" for m in months if m.startswith(month_part)]
+                            completions = [
+                                f"{year_part}/{m}"
+                                for m in months
+                                if m.startswith(month_part)
+                            ]
                             return completions
                     return []
                 else:
-                    year_completions = [y for y in self.YEARS if y.startswith(text)]
+                    year_completions = [
+                        y for y in self.YEARS if y.startswith(text)
+                    ]
                     return [f"{y}/" for y in year_completions]
             elif parts[-2] == "end":
                 if "/" in text:
                     parts = text.split("/")
                     if len(parts) == 2:
                         year_part, month_part = parts
-                        if year_part in self.YEARS or any(y.startswith(year_part) for y in self.YEARS):
+                        if year_part in self.YEARS or any(
+                            y.startswith(year_part) for y in self.YEARS
+                        ):
                             months = [str(i) for i in range(1, 13)]
-                            completions = [f"{year_part}/{m}" for m in months if m.startswith(month_part)]
+                            completions = [
+                                f"{year_part}/{m}"
+                                for m in months
+                                if m.startswith(month_part)
+                            ]
                             return completions
                     return []
                 else:
                     if text.startswith("n"):
                         return ["now"]
-                    year_completions = [f"{y}/" for y in self.YEARS if y.startswith(text)] + ["now"]
+                    year_completions = [
+                        f"{y}/" for y in self.YEARS if y.startswith(text)
+                    ] + ["now"]
                     return [y for y in year_completions if y.startswith(text)]
             else:
                 return [i for i in options if i.startswith(parts[-1])]
         else:
             return options
 
-FOUNDER_HASH = b'$2b$12$aI7vpFUGDjIk0wKLXYSTE./UHK3TDZlH9/XMF7Jbf5dLx5pfEntUi'
+
+FOUNDER_HASH = b"$2b$12$aI7vpFUGDjIk0wKLXYSTE./UHK3TDZlH9/XMF7Jbf5dLx5pfEntUi"
+
 
 def check_founder_key(answer: str) -> bool:
-    """校验创始人密钥（《朝花夕拾协议》的宗旨），命令行与 API 共用。"""
+    """校验创始人密钥（《朝花夕拾协议》的宗旨），命令行与 API 共用"""
     if not answer:
         return False
     try:
         return bcrypt.checkpw(answer.encode(), FOUNDER_HASH)
     except ValueError:
         return False
+
 
 def help_ftf():
     FTFCmd.cipher = getpass.getpass("《朝花夕拾协议》的宗旨是？")
@@ -1218,22 +2126,27 @@ def help_ftf():
     sleep(2)
     raise AdminMode()
 
+
 class FTFAdminCmd(FTFCmd):
     prompt = "[FTF ADMIN] "
 
-    def __init__(self, completekey = "tab", stdin = None, stdout = None):
+    def __init__(self, completekey="tab", stdin=None, stdout=None):
         super().__init__(completekey, stdin, stdout)
         self.color = Fore.LIGHTRED_EX
 
     def onecmd(self, line: str) -> bool:
         if line == "" or line.isspace():
             return
-        c = choice("YN", Fore.LIGHTYELLOW_EX + "协议创始人，请牢记您的命令一旦执行便无法撤回，您确定要执行此命令吗")
+        c = choice(
+            "YN",
+            Fore.LIGHTYELLOW_EX
+            + "协议创始人，请牢记您的命令一旦执行便无法撤回，您确定要执行此命令吗",
+        )
         if c == 2:
             return
         os.system("color 0c")
         return super().onecmd(line)
-    
+
     def do_exit(self, args: str):
         """
         退出《朝花夕拾协议》命令行。
@@ -1247,7 +2160,7 @@ class FTFAdminCmd(FTFCmd):
             return
         os.system("color 0a")
         raise CommandLineExit()
-    
+
     def do_dellog(self, args: str):
         """
         删除日志文件。
@@ -1278,14 +2191,24 @@ class FTFAdminCmd(FTFCmd):
                 os.remove(f"logs\\{logname}.log")
             except PermissionError:
                 print(f"{self.color}无法删除{logname}.log，请确保文件未被占用")
-                log(f"无法删除{logname}.log，请确保文件未被占用", "warning", logfile_only=True)
+                log(
+                    f"无法删除{logname}.log，请确保文件未被占用",
+                    "warning",
+                    logfile_only=True,
+                )
                 return
             print(f"{self.color}已删除{logname}.log")
             log(f"已删除{logname}.log", "info", logfile_only=True)
 
-    def complete_dellog(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_dellog(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         if line.startswith("dellog "):
-            return [i.replace("logs\\", "").replace(".log", "") for i in glob("logs\\*.log") if i.replace("logs\\", "").replace(".log", "").startswith(text)]
+            return [
+                i.replace("logs\\", "").replace(".log", "")
+                for i in glob("logs\\*.log")
+                if i.replace("logs\\", "").replace(".log", "").startswith(text)
+            ]
         return []
 
     CLOUD_API = "https://docs.qq.com/openapi/drive/v2"
@@ -1305,11 +2228,17 @@ class FTFAdminCmd(FTFCmd):
         items = []
         start = 0
         while True:
-            response = requests.get(url, headers=self._cloud_headers(), params={"start": start, "limit": 50})
+            response = requests.get(
+                url,
+                headers=self._cloud_headers(),
+                params={"start": start, "limit": 50},
+            )
             response.raise_for_status()
             result = response.json()
             if result.get("ret") != 0:
-                raise Exception(f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}")
+                raise Exception(
+                    f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}"
+                )
             data = result.get("data") or {}
             items.extend(data.get("list") or [])
             next_start = data.get("next") or 0
@@ -1318,7 +2247,9 @@ class FTFAdminCmd(FTFCmd):
             start = next_start
         return items
 
-    def _cloud_find_folder(self, parent_id: str | None, title: str) -> str | None:
+    def _cloud_find_folder(
+        self, parent_id: str | None, title: str
+    ) -> str | None:
         for item in self._cloud_list_folder(parent_id):
             if item.get("type") == "folder" and item.get("title") == title:
                 return item.get("ID")
@@ -1344,15 +2275,32 @@ class FTFAdminCmd(FTFCmd):
         try:
             root_id = self._cloud_find_folder(None, root_title)
             if root_id is None:
-                print(f"{self.color}未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”")
-                log(f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”", "warning", logfile_only=True)
+                print(
+                    f"{self.color}未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”"
+                )
+                log(
+                    f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”",
+                    "warning",
+                    logfile_only=True,
+                )
                 return
             year_id = self._cloud_find_folder(root_id, year)
             if year_id is None:
                 print(f"{self.color}未在腾讯文档云端找到{year}年文件夹")
-                log(f"未在腾讯文档云端找到{year}年文件夹", "warning", logfile_only=True)
+                log(
+                    f"未在腾讯文档云端找到{year}年文件夹",
+                    "warning",
+                    logfile_only=True,
+                )
                 return
-            files = natsorted((i for i in self._cloud_list_folder(year_id) if i.get("type") != "folder"), key=lambda i: i.get("title", ""))
+            files = natsorted(
+                (
+                    i
+                    for i in self._cloud_list_folder(year_id)
+                    if i.get("type") != "folder"
+                ),
+                key=lambda i: i.get("title", ""),
+            )
         except Exception as e:
             print(f"{self.color}访问腾讯文档云端失败: {e}")
             log(f"访问腾讯文档云端失败: {e}", "error", logfile_only=True)
@@ -1361,8 +2309,14 @@ class FTFAdminCmd(FTFCmd):
             print(f"{self.color}{year}年文件夹中没有云端文件")
             log(f"{year}年文件夹中没有云端文件", "info", logfile_only=True)
             return
-        name_width = max([display_width("文件名称")] + [display_width(i.get("title", "")) for i in files])
-        id_width = max([display_width("文件ID")] + [display_width(i.get("ID", "")) for i in files])
+        name_width = max(
+            [display_width("文件名称")]
+            + [display_width(i.get("title", "")) for i in files]
+        )
+        id_width = max(
+            [display_width("文件ID")]
+            + [display_width(i.get("ID", "")) for i in files]
+        )
         header = f"{pad('文件名称', name_width)}  {pad('文件ID', id_width)}"
         print(self.color + header)
         print(self.color + "-" * display_width(header))
@@ -1372,9 +2326,15 @@ class FTFAdminCmd(FTFCmd):
             print(self.color + line)
             log(line, "info", logfile_only=True)
         print(f"{self.color}共列出{year}年的{len(files)}个云端文件")
-        log(f"共列出{year}年的{len(files)}个云端文件", "info", logfile_only=True)
+        log(
+            f"共列出{year}年的{len(files)}个云端文件",
+            "info",
+            logfile_only=True,
+        )
 
-    def complete_listfiles(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_listfiles(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         if line.startswith("listfiles "):
             return [i for i in self.YEARS if i.startswith(text)]
         return []
@@ -1430,15 +2390,29 @@ class FTFAdminCmd(FTFCmd):
         try:
             root_id = self._cloud_find_folder(None, root_title)
             if root_id is None:
-                print(f"{self.color}未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”")
-                log(f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”", "warning", logfile_only=True)
+                print(
+                    f"{self.color}未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”"
+                )
+                log(
+                    f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”",
+                    "warning",
+                    logfile_only=True,
+                )
                 return
             year_id = self._cloud_find_folder(root_id, year)
             if year_id is None:
                 print(f"{self.color}未在腾讯文档云端找到{year}年文件夹")
-                log(f"未在腾讯文档云端找到{year}年文件夹", "warning", logfile_only=True)
+                log(
+                    f"未在腾讯文档云端找到{year}年文件夹",
+                    "warning",
+                    logfile_only=True,
+                )
                 return
-            cloud_files = {i.get("title"): i for i in self._cloud_list_folder(year_id) if i.get("type") != "folder"}
+            cloud_files = {
+                i.get("title"): i
+                for i in self._cloud_list_folder(year_id)
+                if i.get("type") != "folder"
+            }
         except Exception as e:
             print(f"{self.color}访问腾讯文档云端失败: {e}")
             log(f"访问腾讯文档云端失败: {e}", "error", logfile_only=True)
@@ -1456,18 +2430,35 @@ class FTFAdminCmd(FTFCmd):
                 entry["local_hash"] = self._local_file_hash(local_files[title])
             if title in cloud_files:
                 entry["cloud_id"] = cloud_files[title].get("ID")
-                entry["cloud_last_modify"] = cloud_files[title].get("lastModifyTime")
+                entry["cloud_last_modify"] = cloud_files[title].get(
+                    "lastModifyTime"
+                )
             current[title] = entry
         manifest = self._load_cloud_manifest()
         if reset or year not in manifest:
-            manifest[year] = {"baseline_time": int(datetime.datetime.now().timestamp()), "files": current}
+            manifest[year] = {
+                "baseline_time": int(datetime.datetime.now().timestamp()),
+                "files": current,
+            }
             self._save_cloud_manifest(manifest)
             if reset:
-                print(f"{self.color}已按当前云端与本地状态重新建立{year}年的校验基线，本次不做差异判定")
-                log(f"已按当前云端与本地状态重新建立{year}年的校验基线，本次不做差异判定", "info", logfile_only=True)
+                print(
+                    f"{self.color}已按当前云端与本地状态重新建立{year}年的校验基线，本次不做差异判定"
+                )
+                log(
+                    f"已按当前云端与本地状态重新建立{year}年的校验基线，本次不做差异判定",
+                    "info",
+                    logfile_only=True,
+                )
             else:
-                print(f"{self.color}未找到{year}年的校验基线，已按当前云端与本地状态建立基线，本次不做差异判定")
-                log(f"未找到{year}年的校验基线，已按当前云端与本地状态建立基线，本次不做差异判定", "info", logfile_only=True)
+                print(
+                    f"{self.color}未找到{year}年的校验基线，已按当前云端与本地状态建立基线，本次不做差异判定"
+                )
+                log(
+                    f"未找到{year}年的校验基线，已按当前云端与本地状态建立基线，本次不做差异判定",
+                    "info",
+                    logfile_only=True,
+                )
             return
         baseline = manifest[year].get("files", {})
         differences = []
@@ -1492,7 +2483,11 @@ class FTFAdminCmd(FTFCmd):
                 differences.append(f"{title}: 本地文件缺失")
             elif not base_has_local and has_local:
                 differences.append(f"{title}: 本地新增文件")
-            elif base_has_local and has_local and base.get("local_hash") != current[title].get("local_hash"):
+            elif (
+                base_has_local
+                and has_local
+                and base.get("local_hash") != current[title].get("local_hash")
+            ):
                 differences.append(f"{title}: 本地文件内容已改动")
             if base_has_cloud and not has_cloud:
                 differences.append(f"{title}: 云端文件缺失")
@@ -1500,25 +2495,45 @@ class FTFAdminCmd(FTFCmd):
                 differences.append(f"{title}: 云端新增文件")
             elif base_has_cloud and has_cloud:
                 if base.get("cloud_id") != current[title].get("cloud_id"):
-                    differences.append(f"{title}: 云端文件已被替换（fileID 变化）")
-                elif base.get("cloud_last_modify") != current[title].get("cloud_last_modify"):
+                    differences.append(
+                        f"{title}: 云端文件已被替换（fileID 变化）"
+                    )
+                elif base.get("cloud_last_modify") != current[title].get(
+                    "cloud_last_modify"
+                ):
                     differences.append(f"{title}: 云端文件内容已改动")
         if not differences:
-            print(f"{self.color}{year}年云端文件与本地文件校验完成，未发现不一致")
-            log(f"{year}年云端文件与本地文件校验完成，未发现不一致", "info", logfile_only=True)
+            print(
+                f"{self.color}{year}年云端文件与本地文件校验完成，未发现不一致"
+            )
+            log(
+                f"{year}年云端文件与本地文件校验完成，未发现不一致",
+                "info",
+                logfile_only=True,
+            )
         else:
-            print(f"{self.color}{year}年云端文件与本地文件校验完成，共发现{len(differences)}处不一致：")
-            log(f"{year}年云端文件与本地文件校验完成，共发现{len(differences)}处不一致", "warning", logfile_only=True)
+            print(
+                f"{self.color}{year}年云端文件与本地文件校验完成，共发现{len(differences)}处不一致："
+            )
+            log(
+                f"{year}年云端文件与本地文件校验完成，共发现{len(differences)}处不一致",
+                "warning",
+                logfile_only=True,
+            )
             for difference in differences:
                 print(f"{self.color}- {difference}")
                 log(f"- {difference}", "info", logfile_only=True)
 
-    def complete_verify(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_verify(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         if line.startswith("verify "):
             return [i for i in self.YEARS if i.startswith(text)]
         return []
 
-    def _cloud_create_folder(self, title: str, parent_id: str | None = None) -> str | None:
+    def _cloud_create_folder(
+        self, title: str, parent_id: str | None = None
+    ) -> str | None:
         url = f"{self.CLOUD_API}/folders"
         headers = self._cloud_headers()
         headers["Content-Type"] = "application/x-www-form-urlencoded"
@@ -1529,7 +2544,9 @@ class FTFAdminCmd(FTFCmd):
         response.raise_for_status()
         result = response.json()
         if result.get("ret") != 0:
-            raise Exception(f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}")
+            raise Exception(
+                f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}"
+            )
         return (result.get("data") or {}).get("ID")
 
     def _cloud_file_metadata(self, file_id: str) -> dict:
@@ -1538,16 +2555,22 @@ class FTFAdminCmd(FTFCmd):
         response.raise_for_status()
         result = response.json()
         if result.get("ret") != 0:
-            raise Exception(f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}")
+            raise Exception(
+                f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}"
+            )
         return result.get("data") or {}
 
     def _cloud_delete_file(self, file_id: str) -> None:
         url = f"{self.CLOUD_API}/files/{file_id}"
-        response = requests.delete(url, headers=self._cloud_headers(), params={"recoverable": 1})
+        response = requests.delete(
+            url, headers=self._cloud_headers(), params={"recoverable": 1}
+        )
         response.raise_for_status()
         result = response.json()
         if result.get("ret") != 0:
-            raise Exception(f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}")
+            raise Exception(
+                f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}"
+            )
 
     def _cloud_md5(self, path: str) -> str:
         digest = hashlib.md5()
@@ -1556,45 +2579,79 @@ class FTFAdminCmd(FTFCmd):
                 digest.update(chunk)
         return digest.hexdigest()
 
-    def _cloud_pre_import(self, file_md5: str, file_name: str, file_size: int) -> dict:
+    def _cloud_pre_import(
+        self, file_md5: str, file_name: str, file_size: int
+    ) -> dict:
         url = f"{self.CLOUD_API}/files/upload"
         headers = self._cloud_headers()
         headers["Content-Type"] = "application/x-www-form-urlencoded"
-        response = requests.post(url, headers=headers, data={"fileMD5": file_md5, "fileName": file_name, "fileSize": file_size})
+        response = requests.post(
+            url,
+            headers=headers,
+            data={
+                "fileMD5": file_md5,
+                "fileName": file_name,
+                "fileSize": file_size,
+            },
+        )
         response.raise_for_status()
         result = response.json()
         if result.get("ret") != 0:
-            raise Exception(f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}")
+            raise Exception(
+                f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}"
+            )
         return result.get("data") or {}
 
-    def _cloud_put_cos(self, path: str, cos_put_url: str, custom_header: dict | None = None) -> None:
-        headers = custom_header or {"Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+    def _cloud_put_cos(
+        self, path: str, cos_put_url: str, custom_header: dict | None = None
+    ) -> None:
+        headers = custom_header or {
+            "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        }
         with open(path, "rb") as f:
             response = requests.put(cos_put_url, headers=headers, data=f)
         response.raise_for_status()
 
-    def _cloud_async_import(self, file_md5: str, file_name: str, cos_file_key: str, parent_id: str | None = None) -> str | None:
+    def _cloud_async_import(
+        self,
+        file_md5: str,
+        file_name: str,
+        cos_file_key: str,
+        parent_id: str | None = None,
+    ) -> str | None:
         url = f"{self.CLOUD_API}/files/async-import"
         headers = self._cloud_headers()
         headers["Content-Type"] = "application/x-www-form-urlencoded"
-        data = {"fileMD5": file_md5, "fileName": file_name, "COSFileKey": cos_file_key}
+        data = {
+            "fileMD5": file_md5,
+            "fileName": file_name,
+            "COSFileKey": cos_file_key,
+        }
         if parent_id:
             data["parentfolderID"] = parent_id
         response = requests.post(url, headers=headers, data=data)
         response.raise_for_status()
         result = response.json()
         if result.get("ret") != 0:
-            raise Exception(f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}")
+            raise Exception(
+                f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}"
+            )
         return (result.get("data") or {}).get("progressQueryID")
 
     def _cloud_import_progress(self, progress_query_id: str) -> dict:
         url = f"{self.CLOUD_API}/files/import-progress"
         for _ in range(120):
-            response = requests.get(url, headers=self._cloud_headers(), params={"progressQueryID": progress_query_id})
+            response = requests.get(
+                url,
+                headers=self._cloud_headers(),
+                params={"progressQueryID": progress_query_id},
+            )
             response.raise_for_status()
             result = response.json()
             if result.get("ret") != 0:
-                raise Exception(f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}")
+                raise Exception(
+                    f"接口返回错误（ret={result.get('ret')}）: {result.get('msg')}"
+                )
             data = result.get("data") or {}
             if data.get("ID") and data.get("progress") == 100:
                 return data
@@ -1642,22 +2699,42 @@ class FTFAdminCmd(FTFCmd):
         try:
             root_id = self._cloud_find_folder(None, root_title)
             if root_id is None:
-                print(f"{self.color}未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”")
-                log(f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”", "warning", logfile_only=True)
+                print(
+                    f"{self.color}未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”"
+                )
+                log(
+                    f"未在腾讯文档云端找到《朝花夕拾协议》根目录“{root_title}”",
+                    "warning",
+                    logfile_only=True,
+                )
                 return
             year_id = self._cloud_find_folder(root_id, year)
             if year_id is None:
                 year_id = self._cloud_create_folder(year, root_id)
                 print(f"{self.color}云端不存在{year}年文件夹，已创建")
-                log(f"云端不存在{year}年文件夹，已创建", "info", logfile_only=True)
-            existing = [i for i in self._cloud_list_folder(year_id) if i.get("type") != "folder" and i.get("title") == title]
+                log(
+                    f"云端不存在{year}年文件夹，已创建",
+                    "info",
+                    logfile_only=True,
+                )
+            existing = [
+                i
+                for i in self._cloud_list_folder(year_id)
+                if i.get("type") != "folder" and i.get("title") == title
+            ]
         except Exception as e:
             print(f"{self.color}访问腾讯文档云端失败: {e}")
             log(f"访问腾讯文档云端失败: {e}", "error", logfile_only=True)
             return
         if existing:
-            print(f"{self.color}云端{year}年文件夹中已存在{len(existing)}个名为“{title}”的文件：")
-            log(f"云端{year}年文件夹中已存在{len(existing)}个名为“{title}”的文件", "warning", logfile_only=True)
+            print(
+                f"{self.color}云端{year}年文件夹中已存在{len(existing)}个名为“{title}”的文件："
+            )
+            log(
+                f"云端{year}年文件夹中已存在{len(existing)}个名为“{title}”的文件",
+                "warning",
+                logfile_only=True,
+            )
             for item in existing:
                 print(f"{self.color}- {item.get('ID')}")
                 log(f"- {item.get('ID')}", "info", logfile_only=True)
@@ -1669,7 +2746,11 @@ class FTFAdminCmd(FTFCmd):
                 for item in existing:
                     self._cloud_delete_file(item.get("ID"))
                     print(f"{self.color}已删除云端同名文件 {item.get('ID')}")
-                    log(f"已删除云端同名文件 {item.get('ID')}", "info", logfile_only=True)
+                    log(
+                        f"已删除云端同名文件 {item.get('ID')}",
+                        "info",
+                        logfile_only=True,
+                    )
             except Exception as e:
                 print(f"{self.color}删除云端同名文件失败: {e}")
                 log(f"删除云端同名文件失败: {e}", "error", logfile_only=True)
@@ -1677,13 +2758,21 @@ class FTFAdminCmd(FTFCmd):
         try:
             file_md5 = self._cloud_md5(local_path)
             file_name = os.path.basename(local_path)
-            pre_import = self._cloud_pre_import(file_md5, file_name, os.path.getsize(local_path))
+            pre_import = self._cloud_pre_import(
+                file_md5, file_name, os.path.getsize(local_path)
+            )
             print(self.color + "已获取云端上传链接，正在上传文档")
             log("已获取云端上传链接，正在上传文档", "info", logfile_only=True)
-            self._cloud_put_cos(local_path, pre_import.get("COSPutURL"), pre_import.get("CustomHeader"))
+            self._cloud_put_cos(
+                local_path,
+                pre_import.get("COSPutURL"),
+                pre_import.get("CustomHeader"),
+            )
             print(self.color + "文档已上传，正在导入腾讯文档")
             log("文档已上传，正在导入腾讯文档", "info", logfile_only=True)
-            progress_query_id = self._cloud_async_import(file_md5, file_name, pre_import.get("COSFileKey"), year_id)
+            progress_query_id = self._cloud_async_import(
+                file_md5, file_name, pre_import.get("COSFileKey"), year_id
+            )
             if not progress_query_id:
                 raise Exception("未获取到导入进度查询凭证")
             file_info = self._cloud_import_progress(progress_query_id)
@@ -1699,7 +2788,9 @@ class FTFAdminCmd(FTFCmd):
                     new_last_modify = item.get("lastModifyTime")
                     break
             if new_last_modify is None:
-                new_last_modify = self._cloud_file_metadata(new_id).get("lastModifyTime")
+                new_last_modify = self._cloud_file_metadata(new_id).get(
+                    "lastModifyTime"
+                )
         except Exception as e:
             log(f"获取云端文档信息失败: {e}", "error", logfile_only=True)
         manifest = self._load_cloud_manifest()
@@ -1712,19 +2803,36 @@ class FTFAdminCmd(FTFCmd):
             manifest[year]["files"][title] = entry
             self._save_cloud_manifest(manifest)
         print(f"{self.color}已将{document}上传到云端（文档ID: {new_id}）")
-        log(f"已将{document}上传到云端（文档ID: {new_id}）", "info", logfile_only=True)
+        log(
+            f"已将{document}上传到云端（文档ID: {new_id}）",
+            "info",
+            logfile_only=True,
+        )
 
-    def complete_upload(self, text: str, line: str, begidx: int, endidx: int) -> list[str]:
+    def complete_upload(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
         parts = text.split("/")
         year_part = parts[0] if len(parts) > 0 else ""
         month_part = parts[1] if len(parts) > 1 else ""
         if "/" not in text:
             return [f"{i}/" for i in self.YEARS if i.startswith(year_part)]
         if month_part == "":
-            return [f"{year_part}/{i}" for i in [str(i) for i in range(1, 13)]] + [f"{year_part}/annual_summary"]
+            return [
+                f"{year_part}/{i}" for i in [str(i) for i in range(1, 13)]
+            ] + [f"{year_part}/annual_summary"]
         if month_part.startswith("a"):
-            return [f"{year_part}/annual_summary"] if "annual_summary".startswith(month_part) else []
-        return [f"{year_part}/{i}" for i in [str(i) for i in range(1, 13)] if i.startswith(month_part)]
+            return (
+                [f"{year_part}/annual_summary"]
+                if "annual_summary".startswith(month_part)
+                else []
+            )
+        return [
+            f"{year_part}/{i}"
+            for i in [str(i) for i in range(1, 13)]
+            if i.startswith(month_part)
+        ]
+
 
 def help_ftf_admin():
     print(Fore.LIGHTRED_EX + "您已处在协议创始人权限下")

@@ -1,6 +1,7 @@
 """
 飞书自建应用传输层
 """
+
 import json
 import os
 import queue
@@ -26,9 +27,9 @@ from lark_oapi.event.callback.model.p2_card_action_trigger import (
     P2CardActionTriggerResponse,
 )
 
-from ..Common import config
-from ..Common.functions import log
-from .remote import RemoteTerminal
+from libs.Common import config
+from libs.Common.functions import log
+from libs.Transport.remote import RemoteTerminal
 
 MAX_SEEN = 200
 MAX_FILE_SIZE = 30 * 1024 * 1024
@@ -36,6 +37,7 @@ MAX_IMAGE_SIZE = 10 * 1024 * 1024
 
 # 密钥输入卡片中密码框的字段名
 AUTH_INPUT_NAME = "founder_key"
+
 
 def _auth_input_card() -> dict:
     """带密钥输入框的创始人密钥卡片，密钥不会作为聊天消息发送
@@ -69,7 +71,10 @@ def _auth_input_card() -> dict:
                         "max_length": 200,
                         "label": {"tag": "plain_text", "content": "密钥"},
                         "label_position": "top",
-                        "placeholder": {"tag": "plain_text", "content": "请输入密钥"},
+                        "placeholder": {
+                            "tag": "plain_text",
+                            "content": "请输入密钥",
+                        },
                     },
                     {
                         "tag": "button",
@@ -82,6 +87,7 @@ def _auth_input_card() -> dict:
             },
         ],
     }
+
 
 def _auth_result_card(ok: bool) -> dict:
     """校验结束后替换原卡片，输入框与密钥一并从卡片中消失"""
@@ -97,12 +103,15 @@ def _auth_result_card(ok: bool) -> dict:
             "template": template,
             "title": {"tag": "plain_text", "content": title},
         },
-        "elements": [{"tag": "div", "text": {"tag": "plain_text", "content": text}}],
+        "elements": [
+            {"tag": "div", "text": {"tag": "plain_text", "content": text}}
+        ],
     }
+
 
 class FeishuTransport(RemoteTerminal):
     """把飞书长连接事件翻译成指令，把回复翻译成飞书消息"""
-    
+
     def __init__(
         self,
         app_id: str,
@@ -113,21 +122,30 @@ class FeishuTransport(RemoteTerminal):
     ) -> None:
         self.app_id = app_id
         self.app_secret = app_secret
-        self.allowed = {i.strip() for i in (allowed_open_ids or []) if i.strip()}
-        self.client = lark.Client.builder().app_id(app_id).app_secret(app_secret).build()
+        self.allowed = {
+            i.strip() for i in (allowed_open_ids or []) if i.strip()
+        }
+        self.client = (
+            lark.Client.builder().app_id(app_id).app_secret(app_secret).build()
+        )
         self.inbox: queue.Queue = queue.Queue()
         self._chat_id: str = ""
         self._seen: list[str] = []
         self._seen_set: set[str] = set()
         self._stopped = False
         self._handler = (
-            lark.EventDispatcherHandler.builder(encrypt_key, verification_token)
+            lark.EventDispatcherHandler.builder(
+                encrypt_key, verification_token
+            )
             .register_p2_im_message_receive_v1(self._on_message)
             .register_p2_card_action_trigger(self._on_card_action)
             .build()
         )
         self._ws = lark.ws.Client(
-            app_id, app_secret, event_handler=self._handler, log_level=lark.LogLevel.INFO
+            app_id,
+            app_secret,
+            event_handler=self._handler,
+            log_level=lark.LogLevel.INFO,
         )
 
     def conversation_key(self) -> str:
@@ -149,14 +167,20 @@ class FeishuTransport(RemoteTerminal):
             sender = event.sender
             if sender is None or sender.sender_type != "user":
                 return
-            open_id = (sender.sender_id.open_id if sender.sender_id else "") or ""
+            open_id = (
+                sender.sender_id.open_id if sender.sender_id else ""
+            ) or ""
             log(
                 f"收到飞书消息: open_id={open_id}, chat_id={message.chat_id}, 类型={message.message_type}",
                 "info",
                 logfile_only=True,
             )
             if self.allowed and open_id not in self.allowed:
-                log(f"忽略未授权飞书用户的消息: {open_id}", "warning", logfile_only=True)
+                log(
+                    f"忽略未授权飞书用户的消息: {open_id}",
+                    "warning",
+                    logfile_only=True,
+                )
                 return
             if message.message_id in self._seen_set:
                 return
@@ -164,26 +188,42 @@ class FeishuTransport(RemoteTerminal):
             if message.message_type != "text":
                 self.inbox.put((open_id, message.chat_id, "<unsupported>"))
                 return
-            text = (json.loads(message.content or "{}").get("text") or "").strip()
+            text = (
+                json.loads(message.content or "{}").get("text") or ""
+            ).strip()
             # 群里 @机器人 会留下 @_user_1 这类占位符
-            text = " ".join(part for part in text.split() if not part.startswith("@_user_"))
+            text = " ".join(
+                part for part in text.split() if not part.startswith("@_user_")
+            )
             if text:
                 self.inbox.put((open_id, message.chat_id, text))
         except Exception as e:
             log(f"解析飞书事件失败: {e}", "error")
 
-    def _on_card_action(self, data: P2CardActionTrigger) -> P2CardActionTriggerResponse:
+    def _on_card_action(
+        self, data: P2CardActionTrigger
+    ) -> P2CardActionTriggerResponse:
         """处理密钥卡片提交；回传的新卡片会覆盖输入框"""
         try:
             event = data.event
             operator = event.operator if event else None
             open_id = (operator.open_id if operator else "") or ""
             action = event.action if event else None
-            form = (action.form_value if action and action.form_value else {}) or {}
-            log(f"收到飞书卡片回调: open_id={open_id}", "info", logfile_only=True)
+            form = (
+                action.form_value if action and action.form_value else {}
+            ) or {}
+            log(
+                f"收到飞书卡片回调: open_id={open_id}",
+                "info",
+                logfile_only=True,
+            )
 
             if self.allowed and open_id not in self.allowed:
-                log(f"忽略未授权飞书用户的卡片回调: {open_id}", "warning", logfile_only=True)
+                log(
+                    f"忽略未授权飞书用户的卡片回调: {open_id}",
+                    "warning",
+                    logfile_only=True,
+                )
                 return self._card_response(False, "无权操作")
 
             key = form.get(AUTH_INPUT_NAME, "") or ""
@@ -194,13 +234,17 @@ class FeishuTransport(RemoteTerminal):
             if self.authenticate(key):
                 log("创始人密钥校验通过", "info")
                 self._auth_card_id = None
-                return self._card_response(True, "创始人权限已解锁", _auth_result_card(True))
+                return self._card_response(
+                    True, "创始人权限已解锁", _auth_result_card(True)
+                )
             log("创始人密钥校验失败", "warning")
             context = event.context if event else None
             if context and context.open_message_id:
                 # 记住这张卡片，下次再尝试创始人命令时撤回它
                 self._auth_card_id = context.open_message_id
-            return self._card_response(False, "密钥错误", _auth_result_card(False))
+            return self._card_response(
+                False, "密钥错误", _auth_result_card(False)
+            )
         except Exception as e:
             log(f"处理飞书卡片回调失败: {e}", "error")
             return self._card_response(False, f"处理失败: {e}")
@@ -229,7 +273,10 @@ class FeishuTransport(RemoteTerminal):
         request = DeleteMessageRequest.builder().message_id(message_id).build()
         response = self.client.im.v1.message.delete(request)
         if not response.success():
-            log(f"撤回密钥卡片失败（code={response.code}）: {response.msg}", "warning")
+            log(
+                f"撤回密钥卡片失败（code={response.code}）: {response.msg}",
+                "warning",
+            )
         else:
             log("已撤回上一个密钥卡片", "info", logfile_only=True)
 
@@ -251,7 +298,9 @@ class FeishuTransport(RemoteTerminal):
         )
         response = self.client.im.v1.message.create(request)
         if not response.success():
-            raise Exception(f"飞书发送消息失败（code={response.code}）: {response.msg}")
+            raise Exception(
+                f"飞书发送消息失败（code={response.code}）: {response.msg}"
+            )
 
     def _send_card(self, card: dict) -> str | None:
         if not self._chat_id:
@@ -271,7 +320,9 @@ class FeishuTransport(RemoteTerminal):
         )
         response = self.client.im.v1.message.create(request)
         if not response.success():
-            raise Exception(f"飞书发送卡片失败（code={response.code}）: {response.msg}")
+            raise Exception(
+                f"飞书发送卡片失败（code={response.code}）: {response.msg}"
+            )
         return response.data.message_id if response.data else None
 
     def send_image(self, path: str) -> None:
@@ -282,13 +333,18 @@ class FeishuTransport(RemoteTerminal):
             request = (
                 CreateImageRequest.builder()
                 .request_body(
-                    CreateImageRequestBody.builder().image_type("message").image(f).build()
+                    CreateImageRequestBody.builder()
+                    .image_type("message")
+                    .image(f)
+                    .build()
                 )
                 .build()
             )
             response = self.client.im.v1.image.create(request)
         if not response.success():
-            raise Exception(f"飞书上传图片失败（code={response.code}）: {response.msg}")
+            raise Exception(
+                f"飞书上传图片失败（code={response.code}）: {response.msg}"
+            )
         self._send_media("image", {"image_key": response.data.image_key})
 
     def send_file(self, path: str) -> None:
@@ -309,7 +365,9 @@ class FeishuTransport(RemoteTerminal):
             )
             response = self.client.im.v1.file.create(request)
         if not response.success():
-            raise Exception(f"飞书上传文件失败（code={response.code}）: {response.msg}")
+            raise Exception(
+                f"飞书上传文件失败（code={response.code}）: {response.msg}"
+            )
         self._send_media("file", {"file_key": response.data.file_key})
 
     def _send_media(self, msg_type: str, content: dict) -> None:
@@ -330,7 +388,9 @@ class FeishuTransport(RemoteTerminal):
         )
         response = self.client.im.v1.message.create(request)
         if not response.success():
-            raise Exception(f"飞书发送{msg_type}失败（code={response.code}）: {response.msg}")
+            raise Exception(
+                f"飞书发送{msg_type}失败（code={response.code}）: {response.msg}"
+            )
 
     def check_credentials(self) -> tuple[bool, str]:
         """在建立长连接前先校验 App ID / App Secret，避免只看到晦涩的握手错误"""
@@ -344,7 +404,10 @@ class FeishuTransport(RemoteTerminal):
         except Exception as e:
             return False, f"无法连接飞书开放平台: {e}"
         if result.get("code") != 0:
-            return False, f"飞书凭据校验失败（code={result.get('code')}）: {result.get('msg')}"
+            return (
+                False,
+                f"飞书凭据校验失败（code={result.get('code')}）: {result.get('msg')}",
+            )
         return True, "飞书凭据校验通过"
 
     def _ws_loop(self) -> None:
@@ -353,7 +416,10 @@ class FeishuTransport(RemoteTerminal):
         except Exception as e:
             self._stopped = True
             log(f"飞书长连接异常: {e}", "error")
-            log("请确认开放平台已开启“使用长连接接收事件”、权限已发布、应用版本已上线", "error")
+            log(
+                "请确认开放平台已开启“使用长连接接收事件”、权限已发布、应用版本已上线",
+                "error",
+            )
             self.inbox.put(None)
 
     def _work(self) -> str:
@@ -383,30 +449,53 @@ class FeishuTransport(RemoteTerminal):
 
     def run(self) -> str:
         if not self.allowed:
-            log("未配置飞书 allowed_open_ids，当前接受任意用户发来的指令（可用 /whoami 查看自己的 open_id）", "warning")
+            log(
+                "未配置飞书 allowed_open_ids，当前接受任意用户发来的指令（可用 /whoami 查看自己的 open_id）",
+                "warning",
+            )
         ok, message = self.check_credentials()
         if not ok:
             log(message, "error")
             return "error"
         log(message, "info")
         log("正在建立飞书长连接", "info")
-        threading.Thread(target=self._ws_loop, name="ftf-feishu-ws", daemon=True).start()
+        threading.Thread(
+            target=self._ws_loop, name="ftf-feishu-ws", daemon=True
+        ).start()
         return self._work()
+
 
 def start() -> int:
     if not config.feishu_app_id or config.feishu_app_id.startswith("{"):
-        log("未配置飞书 App ID，请在 config.ini 的 [Feishu] 段填写 app_id", "error")
+        log(
+            "未配置飞书 App ID，请在 config.ini 的 [Feishu] 段填写 app_id",
+            "error",
+        )
         return 1
-    if not config.feishu_app_secret or config.feishu_app_secret.startswith("{"):
-        log("未配置飞书 App Secret，请在 config.ini 的 [Feishu] 段填写 app_secret", "error")
+    if not config.feishu_app_secret or config.feishu_app_secret.startswith(
+        "{"
+    ):
+        log(
+            "未配置飞书 App Secret，请在 config.ini 的 [Feishu] 段填写 app_secret",
+            "error",
+        )
         return 1
 
     log("监听终端启动中", "info")
     if config.feishu_allowed_open_ids:
-        log(f"已配置指令白名单，共{len(config.feishu_allowed_open_ids)}个 open_id", "info")
+        log(
+            f"已配置指令白名单，共{len(config.feishu_allowed_open_ids)}个 open_id",
+            "info",
+        )
     else:
-        log("未配置指令白名单，任何能给机器人发消息的人都可以执行指令", "warning")
-        log("可先发送 /whoami 查看自己的 open_id，再填入 config.ini 的 allowed_open_ids", "warning")
+        log(
+            "未配置指令白名单，任何能给机器人发消息的人都可以执行指令",
+            "warning",
+        )
+        log(
+            "可先发送 /whoami 查看自己的 open_id，再填入 config.ini 的 allowed_open_ids",
+            "warning",
+        )
     if config.ai_enabled:
         log(f"AI 语义解析已启用，模型 {config.ai_model}", "info")
     else:

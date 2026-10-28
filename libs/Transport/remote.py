@@ -1,15 +1,16 @@
 """
 与具体传输通道无关的监听终端命令处理
 """
+
 import os
 
 import cv2
 import pyautogui
 
-from ..AI.agent import Agent, AgentReply
-from ..CLI import api
-from ..Common import config
-from ..Common.functions import log
+from libs.AI.agent import Agent, AgentReply
+from libs.CLI import api
+from libs.Common import config
+from libs.Common.functions import log
 
 # 命令行命令的远程入口
 CLI_COMMANDS = {
@@ -47,6 +48,7 @@ COMMAND_LIST = (
     *CLI_COMMANDS,
 )
 
+
 class RemoteTerminal:
     """监听终端的指令处理器
 
@@ -78,8 +80,12 @@ class RemoteTerminal:
         if not request or not answer:
             return
         history = self._histories.setdefault(self.conversation_key(), [])
-        history.append({"role": "user", "content": request[:MAX_HISTORY_CHARS]})
-        history.append({"role": "assistant", "content": answer[:MAX_HISTORY_CHARS]})
+        history.append(
+            {"role": "user", "content": request[:MAX_HISTORY_CHARS]}
+        )
+        history.append(
+            {"role": "assistant", "content": answer[:MAX_HISTORY_CHARS]}
+        )
         limit = MAX_HISTORY_MESSAGES - MAX_HISTORY_MESSAGES % 2
         if len(history) > limit:
             del history[: len(history) - limit]
@@ -135,7 +141,11 @@ class RemoteTerminal:
         first = command.split(" ")[0]
         lowered = first.lower()
         # 兼容旧习惯: 即使 /auth 已删除，也不把可能携带的密钥写进日志
-        shown = f"{first} ***" if lowered == "/auth" and " " in command else command
+        shown = (
+            f"{first} ***"
+            if lowered == "/auth" and " " in command
+            else command
+        )
         log(f"[远程终端指令] {shown}", "info")
 
         # 确认与取消优先处理
@@ -272,7 +282,9 @@ class RemoteTerminal:
             return self._agent
         self._agent_ready = True
         if not config.ai_enabled:
-            log("AI 语义解析未启用（config.ini 的 [AI] enabled=False）", "info")
+            log(
+                "AI 语义解析未启用（config.ini 的 [AI] enabled=False）", "info"
+            )
             return None
         try:
             agent = Agent()
@@ -297,12 +309,12 @@ class RemoteTerminal:
 
         history = self._history_snapshot()
         if history:
-            log(f"AI 上下文: 注入 {len(history)} 条历史消息", "info")
+            log(f"[AI 上下文] 注入 {len(history)} 条历史消息", "info")
 
         try:
             reply = agent.handle(text, history=history)
         except Exception as e:
-            log(f"AI 语义解析失败: {e}", "error")
+            log(f"[AI 语义解析失败] {e}", "error")
             self._remember_turn(text, f"（AI 解析失败: {e}）")
             self.notify("AI 解析失败，请改用 /find 等手动命令")
             return "continue"
@@ -310,7 +322,11 @@ class RemoteTerminal:
         self._remember_turn(text, self._answer_text(reply))
 
         if reply.needs_permission:
-            log(f"AI 计划需要创始人权限: {reply.command}", "info", logfile_only=True)
+            log(
+                f"[AI 计划需要创始人权限] {reply.command}",
+                "info",
+                logfile_only=True,
+            )
             self.notify(
                 f"识别为创始人操作: {reply.command}\n请先输入密钥，再重新发送这条请求"
             )
@@ -330,24 +346,34 @@ class RemoteTerminal:
             return "continue"
 
         if not reply.ok:
-            self.notify(f"识别命令: {reply.command}\n{reply.error or '执行失败'}")
+            self.notify(
+                f"识别命令: {self._command_text(reply)}\n"
+                f"{reply.error or '执行失败'}"
+            )
             return "continue"
 
-        log(f"AI 执行命令: {reply.command}", "info")
+        log(f"[AI 执行命令] {self._command_text(reply)}", "info")
         self._send_ai_result(reply)
         self._refresh_auth_card()
         return "continue"
 
     @staticmethod
+    def _command_text(reply: AgentReply) -> str:
+        """把一次或多次工具调用整理成用于展示的命令行"""
+        commands = [c for c in reply.commands if c] or [reply.command]
+        return "\n".join(command for command in commands if command)
+
+    @staticmethod
     def _answer_text(reply: AgentReply) -> str:
         """整理本轮回复，作为下一轮追问的历史上下文"""
         answer = (reply.summary or reply.text or reply.error or "").strip()
+        command = RemoteTerminal._command_text(reply)
         if reply.needs_permission:
-            note = f"（需要创始人密钥，未执行: {reply.command}）"
+            note = f"（需要创始人密钥，未执行: {command}）"
         elif reply.needs_confirmation:
-            note = f"（等待用户确认: {reply.command}）"
-        elif reply.command and reply.ok:
-            note = f"（已执行命令: {reply.command}）"
+            note = f"（等待用户确认: {command}）"
+        elif command and reply.ok:
+            note = f"（已执行命令: {command}）"
         else:
             note = ""
         if note:
@@ -358,20 +384,21 @@ class RemoteTerminal:
         """回执 AI 的结果：单行直接发，多行把原始输出作为文件补充发送"""
         summary = (reply.summary or "").strip()
         output = (reply.text or "").strip()
+        command = self._command_text(reply)
         if not output:
             self.notify(summary or "执行完毕")
-            self.notify(f"命令: {reply.command}")
+            self.notify(f"命令: {command}")
             return
         if "\n" not in output:
-            parts = [summary, output, f"命令: {reply.command}"]
+            parts = [summary, output, f"命令: {command}"]
             self.notify("\n".join(part for part in parts if part))
             return
         if summary:
-            self.notify(f"{summary}\n命令: {reply.command}")
+            self.notify(f"{summary}\n命令: {command}")
             # 摘要不比原始输出短时认为已覆盖全部条目，不再重复发送文件
             if len(summary.splitlines()) >= len(output.splitlines()):
                 return
-        self._send_result_file(f"命令: {reply.command}\n\n{output}")
+        self._send_result_file(f"命令: {command}\n\n{output}")
 
     def _refresh_auth_card(self) -> None:
         """未鉴权时把密钥卡片挪到最新消息下方"""
@@ -391,7 +418,9 @@ class RemoteTerminal:
             log(f"发送密钥卡片失败: {e}", "error")
             self.notify(f"发送密钥卡片失败: {e}")
 
-    def _run_cli(self, command_line: str, *, answer: bool | None = None) -> str:
+    def _run_cli(
+        self, command_line: str, *, answer: bool | None = None
+    ) -> str:
         """执行 api.py 封装好的命令行命令，并按输出长度选择回执方式"""
         log(f"执行命令行命令: {command_line}", "info")
         result = api.run(command_line, answer=answer)
@@ -402,7 +431,9 @@ class RemoteTerminal:
 
         if not result.ok:
             log(f"命令行命令执行失败: {result.error}", "error")
-            self._remember_turn(command_line, f"（执行失败: {result.error or '未知错误'}）")
+            self._remember_turn(
+                command_line, f"（执行失败: {result.error or '未知错误'}）"
+            )
             self.notify(result.error or "执行失败")
             return "continue"
 
@@ -416,7 +447,9 @@ class RemoteTerminal:
             self.notify(output)
         return "continue"
 
-    def _ask(self, command_line: str, question: str, *, auto_answer: bool) -> str:
+    def _ask(
+        self, command_line: str, question: str, *, auto_answer: bool
+    ) -> str:
         """记录待确认命令，等待用户回复 /y 或 /n"""
         question = question or f"确定要执行 {command_line} 吗？"
         self._pending = (command_line, question, auto_answer)
@@ -439,7 +472,9 @@ class RemoteTerminal:
         log(f"用户确认命令: {command_line}", "info")
         # 执行前的确认: 先放行本身，命令内部若还有确认会再次询问
         # 内部确认: 已得到用户许可，直接应答为“是”
-        return self._run_cli(command_line, answer=True if auto_answer else None)
+        return self._run_cli(
+            command_line, answer=True if auto_answer else None
+        )
 
     def _send_result_file(self, text: str) -> None:
         """把多行运行结果写成文本文件发送，发送结束后删除临时文件"""

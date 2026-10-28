@@ -1,6 +1,7 @@
 """
 《朝花夕拾协议》主程序
 """
+
 import os
 import sys
 
@@ -11,7 +12,7 @@ from libs.CLI.ftf_cmd import FTFAdminCmd, FTFCmd, help_ftf, help_ftf_admin
 from libs.Common.exceptions import AdminMode, CommandLineExit, ConfigError
 from libs.Common.functions import choice, log
 
-os.system("title FTF v3.1")
+os.system("title FTF v3.1.1")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf
@@ -21,7 +22,7 @@ FTF_ADMIN_cmd.help_ftf = help_ftf_admin
 while True:
     while True:
         os.system("cls")
-        
+
         print("欢迎使用《朝花夕拾协议》终端\n按下q键以退出\n")
         print("1. 《朝花夕拾协议》是什么")
         print("2. 《朝花夕拾协议》试题")
@@ -34,12 +35,18 @@ while True:
         print("9. 启动《朝花夕拾协议》监听终端")
 
         if config.ftfpath == r"{ftfpath}":
-            log("未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath", "error")
+            log(
+                "未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath",
+                "error",
+            )
             raise ConfigError(
                 "未配置《朝花夕拾协议》根目录，请前往config.ini中配置ftfpath"
             )
         elif not os.path.exists(config.ftfpath):
-            log("《朝花夕拾协议》根目录无效，请确认路径是否正确，然后前往config.ini中修改ftfpath", "error")
+            log(
+                "《朝花夕拾协议》根目录无效，请确认路径是否正确，然后前往config.ini中修改ftfpath",
+                "error",
+            )
             raise ConfigError(
                 "《朝花夕拾协议》根目录无效，请确认路径是否正确，然后前往config.ini中修改ftfpath"
             )
@@ -50,22 +57,61 @@ while True:
             os.startfile(os.path.join(config.ftfpath, "朝花夕拾协议.docx"))
         elif result == 2:
             log("正在打开《朝花夕拾协议》试题", "info", logfile_only=True)
-            os.startfile(os.path.join(config.ftfpath, "《朝花夕拾协议》熟悉程度统一考试.docx"))
+            os.startfile(
+                os.path.join(
+                    config.ftfpath, "《朝花夕拾协议》熟悉程度统一考试.docx"
+                )
+            )
         elif result == 3:
             log("正在打开《朝花夕拾协议》试题答案", "info", logfile_only=True)
-            os.startfile(os.path.join(config.ftfpath, "《朝花夕拾协议》熟悉程度统一考试（答案）.docx"))
+            os.startfile(
+                os.path.join(
+                    config.ftfpath,
+                    "《朝花夕拾协议》熟悉程度统一考试（答案）.docx",
+                )
+            )
         elif result == 4:
-            log("正在打开《朝花夕拾协议通用掩盖指南》", "info", logfile_only=True)
-            os.startfile(os.path.join(config.ftfpath, "朝花夕拾协议通用掩盖指南.docx"))
+            log(
+                "正在打开《朝花夕拾协议通用掩盖指南》",
+                "info",
+                logfile_only=True,
+            )
+            os.startfile(
+                os.path.join(config.ftfpath, "朝花夕拾协议通用掩盖指南.docx")
+            )
         elif result == 5:
-            log("正在打开《朝花夕拾协议消极情绪应对指南》", "info", logfile_only=True)
-            os.startfile(os.path.join(config.ftfpath, "朝花夕拾协议消极情绪应对指南.docx"))
+            log(
+                "正在打开《朝花夕拾协议消极情绪应对指南》",
+                "info",
+                logfile_only=True,
+            )
+            os.startfile(
+                os.path.join(
+                    config.ftfpath, "朝花夕拾协议消极情绪应对指南.docx"
+                )
+            )
         elif result == 6:
-            log("正在打开《朝花夕拾协议》主题曲《记忆的树林》", "info", logfile_only=True)
-            os.startfile(os.path.join(config.ftfpath, "《朝花夕拾协议》主题曲《记忆的树林》.docx"))
+            log(
+                "正在打开《朝花夕拾协议》主题曲《记忆的树林》",
+                "info",
+                logfile_only=True,
+            )
+            os.startfile(
+                os.path.join(
+                    config.ftfpath, "《朝花夕拾协议》主题曲《记忆的树林》.docx"
+                )
+            )
         elif result == 7:
-            log("正在打开《朝花夕拾协议》印象曲《寻忆》", "info", logfile_only=True)
-            os.startfile(os.path.join(config.ftfpath, "《朝花夕拾协议》印象曲《寻忆》.docx"))
+            log(
+                "正在打开《朝花夕拾协议》印象曲《寻忆》",
+                "info",
+                logfile_only=True,
+            )
+            os.startfile(
+                os.path.join(
+                    config.ftfpath, "《朝花夕拾协议》印象曲《寻忆》.docx"
+                )
+            )
         elif result == 8:
             try:
                 log("《朝花夕拾协议》命令行启动", "info", logfile_only=True)
@@ -74,7 +120,10 @@ while True:
                 continue
             except AdminMode:
                 try:
-                    FTF_ADMIN_cmd.intro = Fore.LIGHTRED_EX + f"欢迎您，协议创始人\n{FTF_cmd.cipher}\n"
+                    FTF_ADMIN_cmd.intro = (
+                        Fore.LIGHTRED_EX
+                        + f"欢迎您，协议创始人\n{FTF_cmd.cipher}\n"
+                    )
                     FTF_ADMIN_cmd.cmdloop()
                 except CommandLineExit:
                     continue

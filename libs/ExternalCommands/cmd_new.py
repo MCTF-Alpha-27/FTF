@@ -10,6 +10,7 @@ def {0}(self, cmd: str):
 FTFCmd.do_{0} = {0}
 """
 
+
 def new(self, cmd: str):
     """
     创建一个新的外部命令。
@@ -25,7 +26,9 @@ def new(self, cmd: str):
     if os.path.exists(f"libs\\ExternalCommands\\cmd_{cmd}.py"):
         log("该外部命令已经存在，请更改您的外部命令名称", "warning")
         return
-    with open(f"libs\\ExternalCommands\\cmd_{cmd}.py", "w", encoding="utf-8") as f:
+    with open(
+        f"libs\\ExternalCommands\\cmd_{cmd}.py", "w", encoding="utf-8"
+    ) as f:
         func = ""
         new_cmd = ""
         log(f"创建外部命令: libs\\ExternalCommands\\cmd_{cmd}.py", "info")
@@ -37,5 +40,6 @@ def new(self, cmd: str):
         new_cmd = cmd_template.format(cmd, new_cmd)
         f.write(new_cmd)
     log("新命令已保存，重启命令行后生效", "info")
+
 
 FTFCmd.do_new = new
