@@ -12,7 +12,7 @@ from libs.CLI.ftf_cmd import FTFAdminCmd, FTFCmd, help_ftf, help_ftf_admin
 from libs.Common.exceptions import AdminMode, CommandLineExit, ConfigError
 from libs.Common.functions import choice, log
 
-os.system("title FTF v3.1.1")
+os.system("title FTF v3.2")
 
 FTF_cmd = FTFCmd()
 FTF_cmd.help_ftf = help_ftf

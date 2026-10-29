@@ -352,6 +352,11 @@ class RemoteTerminal:
             )
             return "continue"
 
+        if reply.file_path:
+            self._send_ai_file(reply)
+            self._refresh_auth_card()
+            return "continue"
+
         log(f"[AI 执行命令] {self._command_text(reply)}", "info")
         self._send_ai_result(reply)
         self._refresh_auth_card()
@@ -372,6 +377,8 @@ class RemoteTerminal:
             note = f"（需要创始人密钥，未执行: {command}）"
         elif reply.needs_confirmation:
             note = f"（等待用户确认: {command}）"
+        elif reply.file_path and reply.ok:
+            note = f"（发送文件: {os.path.basename(reply.file_path)}）"
         elif command and reply.ok:
             note = f"（已执行命令: {command}）"
         else:
@@ -399,6 +406,19 @@ class RemoteTerminal:
             if len(summary.splitlines()) >= len(output.splitlines()):
                 return
         self._send_result_file(f"命令: {command}\n\n{output}")
+
+    def _send_ai_file(self, reply: AgentReply) -> None:
+        """发送 AI 选中的文档；失败时告知用户"""
+        path = reply.file_path
+        name = os.path.basename(path)
+        log(f"[AI 发送文件] {name}", "info")
+        try:
+            self.send_file(path)
+        except Exception as e:
+            log(f"[AI 发送文件失败] {e}", "error")
+            self.notify(f"发送文件失败: {e}")
+            return
+        self.notify(f"已发送文件: {name}")
 
     def _refresh_auth_card(self) -> None:
         """未鉴权时把密钥卡片挪到最新消息下方"""

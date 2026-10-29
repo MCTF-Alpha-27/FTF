@@ -29,7 +29,6 @@ if not os.path.exists("config.ini"):
         "temperature": 0.2,
         "enable_thinking": False,
         "protocol_in_prompt": True,
-        "protocol_mode": "glossary",
     }
     with open("config.ini", "w", encoding="utf-8") as cfgfile:
         config.write(cfgfile)
@@ -90,8 +89,3 @@ ai_max_tokens = _number("AI", "max_tokens", 1024, int)
 ai_temperature = _number("AI", "temperature", 0.2, float)
 ai_enable_thinking = _flag("AI", "enable_thinking")
 ai_protocol_in_prompt = _flag("AI", "protocol_in_prompt", True)
-ai_protocol_mode = _option("AI", "protocol_mode", "glossary")
-if not ai_protocol_in_prompt:
-    ai_protocol_mode = "off"
-elif ai_protocol_mode not in ("glossary", "full"):
-    ai_protocol_mode = "glossary"
