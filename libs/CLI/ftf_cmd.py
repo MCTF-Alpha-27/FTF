@@ -1865,6 +1865,152 @@ class FTFCmd(Cmd):
             return [i for i in self.YEARS if i.startswith(text)]
         return []
 
+    def _new_things_section(self, paragraphs: list[str]) -> tuple[int, str]:
+        """定位新事物统计段：返回段落下标与表头，找不到时下标为 -1"""
+        for index, text in enumerate(paragraphs):
+            if "年共有" in text and "新事物（或重大事件）" in text:
+                return index, text
+        return -1, ""
+
+    def _new_things_groups(
+        self, paragraphs: list[str], start: int
+    ) -> list[tuple[str, int, list[str]]]:
+        """从统计段之后读取按月份分组的新事物，遇到空段落时停止"""
+        groups: list[tuple[str, int, list[str]]] = []
+        month = ""
+        recorded = 0
+        entries: list[str] = []
+        for text in paragraphs[start + 1 :]:
+            if not text:
+                break
+            matched_month = re.match(r"^(\d{1,2})月（共(\d+)个）[：:]?$", text)
+            if matched_month:
+                if month:
+                    groups.append((month, recorded, entries))
+                month = matched_month.group(1)
+                recorded = int(matched_month.group(2))
+                entries = []
+                continue
+            if month:
+                entries.append(text)
+        if month:
+            groups.append((month, recorded, entries))
+        return groups
+
+    def _list_new_things(
+        self, year: str, paragraphs: list[str], month: str = ""
+    ):
+        """打印新事物列表；指定月份时只打印该月"""
+        start, header = self._new_things_section(paragraphs)
+        if start < 0:
+            print(
+                f"{self.color}{year}年的年度总结中没有找到新事物（或重大事件）的统计"
+            )
+            log(
+                f"{year}年的年度总结中没有找到新事物（或重大事件）的统计",
+                "warning",
+                logfile_only=True,
+            )
+            return
+        groups = self._new_things_groups(paragraphs, start)
+        if month:
+            groups = [group for group in groups if group[0] == month]
+            if not groups:
+                print(
+                    f"{self.color}{year}年的年度总结中没有找到{month}月的新事物（或重大事件）"
+                )
+                log(
+                    f"{year}年的年度总结中没有找到{month}月的新事物（或重大事件）",
+                    "warning",
+                    logfile_only=True,
+                )
+                return
+        item_count = sum(len(entries) for _, _, entries in groups)
+        if month:
+            recorded = groups[0][1]
+            label = f"{year}年{month}月"
+        else:
+            recorded = self._first_number(
+                header, r"(\d+)个新事物（或重大事件）"
+            )
+            label = f"{year}年"
+        note = (
+            "" if recorded == item_count else f"，年度总结记录为{recorded}个"
+        )
+        print(
+            f"{self.color}{label}新事物（或重大事件）共{item_count}个{note}："
+        )
+        log(
+            f"{label}新事物（或重大事件）共{item_count}个{note}",
+            "info",
+            logfile_only=True,
+        )
+        for month_name, month_recorded, entries in groups:
+            month_note = (
+                ""
+                if month_recorded == len(entries)
+                else f"，记录为{month_recorded}个"
+            )
+            print(
+                f"{self.color}  {month_name}月"
+                f"（共{len(entries)}个）{month_note}："
+            )
+            log(
+                f"{label}新事物（或重大事件）: {month_name}月"
+                f"（共{len(entries)}个）{month_note}",
+                "info",
+                logfile_only=True,
+            )
+            for entry in entries:
+                print(f"{self.color}    {entry}")
+                log(
+                    f"{label}新事物（或重大事件）: {month_name}月: {entry}",
+                    "info",
+                    logfile_only=True,
+                )
+
+    def do_newthings(self, args: str):
+        """
+        列出年度总结中的新事物（或重大事件）名称。
+
+        语法：newthings <year> [month] [/?]
+            year        年度总结所属的年份。
+            month       只列出该月的新事物（1~12），省略时列出全年。
+            /?          显示此帮助文档。
+        """
+        parts = args.split()
+        if not parts or parts[0] == "/?":
+            print(self.color + self.do_newthings.__doc__)
+            return
+        year = parts[0]
+        month = parts[1] if len(parts) > 1 else ""
+        if month:
+            if not month.isdigit() or not 1 <= int(month) <= 12:
+                print(self.color + self.do_newthings.__doc__)
+                return
+            month = str(int(month))
+        document_path = os.path.join(ftfpath, year, "年度总结.docx")
+        if not os.path.exists(document_path):
+            print(f"{self.color}未找到{year}年的年度总结")
+            log(f"未找到{year}年的年度总结", "warning", logfile_only=True)
+            return
+        paragraphs = [
+            p.text.strip() for p in Document(document_path).paragraphs
+        ]
+        self._list_new_things(year, paragraphs, month)
+
+    def complete_newthings(
+        self, text: str, line: str, begidx: int, endidx: int
+    ) -> list[str]:
+        if line.startswith("newthings "):
+            rest = line.removeprefix("newthings ")
+            if " " in rest:
+                return [
+                    str(i) for i in range(1, 13) if str(i).startswith(text)
+                ]
+            return [i for i in self.YEARS if i.startswith(text)]
+        return []
+
     def do_check(self, args: str):
         """
         检查事件记录文档及年度总结的格式规范性。
@@ -1874,7 +2020,7 @@ class FTFCmd(Cmd):
                     也可使用“~”表示范围，如“2023~2026”表示检查2023年到2026年（包含2023年和2026年）的文档。
                     键入“*”表示检查所有文档。
             /?      显示此帮助文档。
-        
+
         注：由于2023年的文档处于早期阶段，并未统一格式，因此不会检查2023年的文档。
         """
         if args.split(" ")[0] == "/?" or args == "":
@@ -1981,7 +2127,7 @@ class FTFCmd(Cmd):
             start <month>               “时期”记录起算时间，格式为“年份/月份”，例如“2025/1”。
             end <month>/now             指定结束时间，或键入“now”以选择当前时间。
             /?                          显示此帮助文档。
-        
+
         注：以上输入参数的顺序可以任意调整，但起算时间必须早于结束时间。
         """
         if args.split(" ")[0] == "/?" or args == "":
@@ -2134,9 +2280,20 @@ class FTFAdminCmd(FTFCmd):
         super().__init__(completekey, stdin, stdout)
         self.color = Fore.LIGHTRED_EX
 
+    @staticmethod
+    def _founder_only(line: str) -> bool:
+        """判断命令是否仅在创始人模式中提供"""
+        parts = line.strip().split()
+        if not parts:
+            return False
+        handler = "do_" + parts[0]
+        return handler in FTFAdminCmd.__dict__ and not hasattr(FTFCmd, handler)
+
     def onecmd(self, line: str) -> bool:
         if line == "" or line.isspace():
             return
+        if not self._founder_only(line):
+            return super().onecmd(line)
         c = choice(
             "YN",
             Fore.LIGHTYELLOW_EX

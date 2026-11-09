@@ -49,12 +49,18 @@ SYSTEM_PROMPT = """你是《朝花夕拾协议》终端的助手。
 13. 创始人工具（云端文件、校验、上传）每次只能单独调用，不要和查询工具混在一起。
 14. 发送文件工具（send_file）每次也只能单独调用；不要和查询工具或创始人工具混在一起。
 15. 用户明确要“发给我”“传给我”文档时用 send_file；只是查询文档内容时仍用 search_documents 等工具。
-16. 事件记录里的任意人名、地名、作品名、活动名、时间都可以直接作为搜索关键词；不要因为某个词没有出现在协议正文里，就认为它与协议无关。
+16. 用户说“校验/核对云端文件”“云端文件是否一致”时用 verify_cloud；只说“检查文档格式”时用 check_documents；只想看“云端有哪些文件”时用 list_cloud_files。
+17. 事件记录里的任意人名、地名、作品名、活动名、时间都可以直接作为搜索关键词；不要因为某个词没有出现在协议正文里，就认为它与协议无关。
 
 示例：
 - “我是哪一年中考的” → search_documents，keywords=["中考"]，不填 year。
 - “2026年什么时候在哪里吃的寿司郎” → search_documents，keywords=["寿司郎"]，year="2026"。
 - “2023和2024年各有哪些合称时期” → list_periods 调用两次，year 分别为 2023、2024，kind="combined"。
+- “2025年有哪些新事物” → list_new_things，year="2025"。
+- “2025年3月有哪些重大事件” → list_new_things，year="2025"，month=3。
+- “校验2023年云端文件” → verify_cloud，year="2023"。
+- “检查2023年文档格式” → check_documents，years="2023"。
+- “2023年云端有哪些文件” → list_cloud_files，year="2023"。
 - “把2025年3月的文档发给我” → send_file，document="2025/3"。
 - “发我2025年年度总结” → send_file，document="2025/annual_summary"。
 - “把《朝花夕拾协议》发给我” → send_file，document="protocol"。
@@ -106,6 +112,29 @@ def _standalone_send(text: str) -> bool:
     if "《" in text and "》" in text:
         return True
     return any(topic in text for topic in ("主题曲", "印象曲", "统一考试"))
+
+
+ADMIN_INTENT_HINTS = (
+    "校验",
+    "核对",
+    "云端",
+    "上传",
+    "格式",
+    "verify",
+    "check",
+    "listfiles",
+    "upload",
+)
+
+
+def _standalone_request(text: str) -> bool:
+    """判断请求是否已经完整，不需要用历史补全"""
+    if _standalone_send(text):
+        return True
+    if not re.search(r"\d{4}", text):
+        return False
+    lowered = text.lower()
+    return any(hint in lowered for hint in ADMIN_INTENT_HINTS)
 
 
 def _needs_full_answer(text: str, plan: AgentPlan) -> bool:
@@ -611,6 +640,21 @@ def _build_periods(args: dict[str, Any]) -> str:
     return f"periods {year}" + ("" if kind == "all" else f" {kind}")
 
 
+def _build_newthings(args: dict[str, Any]) -> str:
+    year = str(args["year"]).strip()
+    if not re.fullmatch(r"\d{4}", year):
+        raise ValueError("year 必须是四位年份，例如 2025")
+    month = str(args.get("month") or "").strip()
+    if not month:
+        return f"newthings {year}"
+    if not re.fullmatch(r"\d{1,2}", month):
+        raise ValueError("month 必须是 1 到 12")
+    value = int(month)
+    if not 1 <= value <= 12:
+        raise ValueError("month 必须是 1 到 12")
+    return f"newthings {year} {value}"
+
+
 def _build_check(args: dict[str, Any]) -> str:
     years = str(args["years"]).strip()
     tokens = years.split()
@@ -732,8 +776,8 @@ TOOLS: dict[str, Tool] = {
         name="count_items",
         description=(
             "只统计某一类记录的数量，不返回名称：新事物（重大事件）、常规时期或合称时期。"
-            "用户问“有多少个时期”而不区分常规与合称时，改用 list_periods，"
-            "它能同时给出两类“时期”的数量和名称。"
+            "用户问“有多少个时期”而不区分常规与合称时，改用 list_periods；"
+            "用户要新事物的名称列表时，改用 list_new_things。"
         ),
         parameters={
             "type": "object",
@@ -777,9 +821,38 @@ TOOLS: dict[str, Tool] = {
         },
         builder=_build_periods,
     ),
+    "list_new_things": Tool(
+        name="list_new_things",
+        description=(
+            "列出某一年年度总结中的新事物（或重大事件）名称，可按月份筛选。"
+            "问“有哪些新事物”“3月有哪些重大事件”时用它；"
+            "只问数量时改用 count_items。"
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "year": {
+                    "type": "string",
+                    "description": "四位年份，例如 2025",
+                },
+                "month": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12,
+                    "description": "只列出该月的新事物；省略时列出全年",
+                },
+            },
+            "required": ["year"],
+            "additionalProperties": False,
+        },
+        builder=_build_newthings,
+    ),
     "check_documents": Tool(
         name="check_documents",
-        description="检查事件记录文档和年度总结的格式是否规范。",
+        description=(
+            "检查本地事件记录文档和年度总结的格式是否规范，不访问云端。"
+            "用户提到“云端文件”“上传”“云端是否一致”时，不要用这个工具。"
+        ),
         parameters={
             "type": "object",
             "properties": {
@@ -860,7 +933,11 @@ TOOLS: dict[str, Tool] = {
     ),
     "list_cloud_files": Tool(
         name="list_cloud_files",
-        description="列出指定年份《朝花夕拾协议》云端已有的文件（创始人命令，需要人工确认）。",
+        description=(
+            "只列出指定年份《朝花夕拾协议》云端已有的文件名称，"
+            "不比较内容，也不校验一致性（创始人命令，需要人工确认）。"
+            "用户问“云端有哪些文件”“列出云端文件”时用它。"
+        ),
         parameters={
             "type": "object",
             "properties": {
@@ -877,7 +954,12 @@ TOOLS: dict[str, Tool] = {
     ),
     "verify_cloud": Tool(
         name="verify_cloud",
-        description="校验指定年份云端文件与本地文件是否一致（创始人命令，需要人工确认）。",
+        description=(
+            "校验指定年份的本地文件与云端文件是否一致，会访问云端"
+            "（创始人命令，需要人工确认）。"
+            "用户说“校验/核对云端文件”“云端文件是否一致”时用它，"
+            "不要改用 check_documents 或 list_cloud_files。"
+        ),
         parameters={
             "type": "object",
             "properties": {
@@ -898,7 +980,11 @@ TOOLS: dict[str, Tool] = {
     ),
     "upload_document": Tool(
         name="upload_document",
-        description="把本地文档上传到《朝花夕拾协议》云端（创始人命令，需要人工确认）。",
+        description=(
+            "把本地文档上传到《朝花夕拾协议》云端"
+            "（创始人命令，需要人工确认）。"
+            "只在用户明确说“上传到云端”时使用。"
+        ),
         parameters={
             "type": "object",
             "properties": {
@@ -1259,7 +1345,7 @@ class Agent:
         history = _history_messages(history)
         original = (text or "").strip()
         request = original
-        if history and not _standalone_send(original):
+        if history and not _standalone_request(original):
             request = self._rewrite(original, history)
         plan = self.plan(request)
         if not plan.tool:

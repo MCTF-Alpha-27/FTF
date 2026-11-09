@@ -17,6 +17,7 @@ CLI_COMMANDS = {
     "/find": "find",
     "/count": "count",
     "/periods": "periods",
+    "/newthings": "newthings",
     "/check": "check",
     "/calculate": "calculate",
     "/dellog": "dellog",
